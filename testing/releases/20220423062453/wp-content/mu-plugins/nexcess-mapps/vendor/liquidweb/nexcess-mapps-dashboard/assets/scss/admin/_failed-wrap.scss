@@ -1,0 +1,43 @@
+
+.nexcess-mapps-dashboard-failed-installs-wrap {
+
+	background: $plugin_block_backg;
+	border-left: 4px solid $error_block_edge;
+	box-shadow: 0 1px 1px 0 rgba( 0, 0, 0, 0.1 );
+	margin: -10px 0 20px 0;
+	padding: 6px 12px 12px;
+	position: relative;
+
+	.nexcess-mapps-dashboard-error-description {
+		margin: 0 0 7px;
+		font-weight: 600;
+	}
+
+	.nexcess-mapps-dashboard-error-list {
+		margin: 0 0 0 21px;
+		list-style: square outside none;
+
+		.nexcess-mapps-dashboard-error-item {
+			margin-bottom: 3px;
+
+			&:last-of-type {
+				margin-bottom: 0;
+			}
+		}
+	}
+
+	&.nexcess-mapps-dashboard-failed-installs-empty {
+		background-color: transparent;
+		border-left: 0 none;
+		box-shadow: none;
+		margin: 0;
+		padding: 0;
+	}
+}
+
+
+
+@media only screen and (max-width: 782px) {}
+
+
+@media only screen and (max-width: 600px) {}

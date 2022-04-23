@@ -1,0 +1,51 @@
+
+.nexcess-mapps-dashboard-plugin-actions {
+	clear: both;
+	margin-bottom: 0;
+	padding: 0 40px 0 0;
+	width: auto;
+}
+
+.nexcess-mapps-dashboard-action-button-row {
+
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+
+	.nexcess-mapps-dashboard-button-action {
+		display: inline-block;
+		vertical-align: middle;
+		width: auto;
+		margin: 0 10px 0 0;
+		padding: 0 5px;
+
+		&.nexcess-mapps-dashboard-button-reset-choices-action {
+			float: right;
+			margin-top: 4px;
+			margin-right: 10px;
+
+			button {
+				height: 20px;
+				line-height: 16px;
+				font-size: 9px;
+			}
+		}
+
+		&.nexcess-mapps-dashboard-button-run-install-action {
+			float: right;
+			padding: 0;
+			margin-right: 0;
+		}
+	}
+
+	.nexcess-spinner {
+		float: left;
+	}
+}
+
+
+@media only screen and (max-width: 782px) {}
+
+
+@media only screen and (max-width: 600px) {}

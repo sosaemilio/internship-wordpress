@@ -1,0 +1,122 @@
+
+.nexcess-mapps-dashboard-plugin-group {
+
+	input {
+		margin: 0 5px 0 0;
+		line-height: 16px;
+	}
+
+	label {
+		line-height: 16px;
+	}
+
+	img.nexcess-mapps-iconic-icon {
+		margin: 0 0 0 3px;
+	}
+
+	.nexcess-mapps-dashboard-plugin-group-title {
+		margin: 0 0 10px;
+	}
+
+	.nexcess-mapps-dashboard-plugin-group-list {
+		margin: 0;
+	}
+
+	.nexcess-mapps-dashboard-plugin-list-single {
+		margin: 0 0 3px;
+	}
+
+	.nexcess-mapps-dashboard-plugin-list-single-installed {
+
+		input.nexcess-mapps-dashboard-plugin-input-installed {
+			cursor: default;
+		}
+
+		label.nexcess-mapps-dashboard-plugin-label-installed {
+			cursor: default;
+			color: #ccc;
+			font-weight: 300;
+		}
+
+		img.nexcess-mapps-iconic-icon {
+			-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=20)"; // IE8
+
+			/* This works in IE 8 & 9 too */
+			/* ... but also 5, 6, 7 */
+			filter: alpha(opacity=20); // IE 5-7
+
+			/* Modern Browsers */
+			opacity: 0.2;
+		}
+
+	}
+
+
+	.nexcess-mapps-dashboard-plugin-list-restricted {
+
+		input {
+			cursor: default;
+		}
+
+		label {
+			cursor: default;
+			color: #ccc;
+			text-decoration: line-through;
+		}
+
+	}
+
+	// nexcess-mapps-dashboard-plugin-list-single-installed
+}
+
+/*
+// Handle the group-specific CSS items here.
+.nexcess-mapps-dashboard-plugin-group {
+	display: inline-block;
+	vertical-align: top;
+	width: auto;
+
+	&.nexcess-mapps-dashboard-plugin-group-performance {
+		height: 100%;
+	}
+
+	&.nexcess-mapps-dashboard-plugin-group-features {
+		height: 100%;
+	}
+
+	&.nexcess-mapps-dashboard-plugin-optimization {
+		height: 40%;
+	}
+
+	&.nexcess-mapps-dashboard-plugin-integrations {
+		height: 40%;
+	}
+
+}
+*/
+
+/*
+.nexcess-mapps-dashboard-plugin-group-features {
+
+	.nexcess-mapps-dashboard-plugin-group-list-features {
+		column-count: 2;
+		column-gap: 0;
+
+		.nexcess-mapps-dashboard-plugin-list-single {
+			display: inline-block;
+			width: 100%;
+		}
+	}
+
+}
+*/
+
+
+
+
+
+
+@media only screen and (max-width: 782px) {}
+
+
+@media only screen and (max-width: 600px) {}

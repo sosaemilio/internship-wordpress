@@ -1,0 +1,45 @@
+/*
+ * Load up our mixins.
+ */
+
+@mixin setinlineauto( $width: auto, $valign: top ) {
+	display: inline-block;
+	width: $width;
+	vertical-align: $valign;
+}
+
+@mixin backcolor( $r, $g, $b, $opacity: 1 ) {
+	background-color: rgb( $r, $g, $b );
+	background-color: rgba($r, $g, $b, $opacity );
+}
+
+@mixin border( $size: 2px, $type: solid, $color: #333 ) {
+	border: $size $type $color;
+}
+
+@mixin border-radius( $x: 4px ) {
+	-webkit-border-radius: $x;
+	-moz-border-radius: $x;
+	border-radius: $x;
+}
+
+@mixin box-shadow( $hz, $vt, $blur, $spread, $color ) {
+	-moz-box-shadow: $hz $vt $blur $spread $color;
+	-webkit-box-shadow: $hz $vt $blur $spread $color;
+	box-shadow: $hz $vt $blur $spread $color;
+}
+
+@mixin set-opacity( $pct: 65, $dec: 0.65 ) {
+
+	/* Theoretically for IE 8 & 9 (more valid) */
+	/* ...but not required as filter works too */
+	/* should come BEFORE filter */
+	-ms-filter:"progid:DXImageTransform.Microsoft.Alpha(Opacity=$pct)"; // IE8
+
+	/* This works in IE 8 & 9 too */
+	/* ... but also 5, 6, 7 */
+	filter: alpha(opacity=$pct); // IE 5-7
+
+	/* Modern Browsers */
+	opacity: $dec;
+}

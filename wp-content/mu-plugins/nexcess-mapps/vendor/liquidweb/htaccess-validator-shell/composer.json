@@ -1,0 +1,48 @@
+{
+    "name": "liquidweb/htaccess-validator-shell",
+    "description": "Shell script for linting and validating Apache2 Htaccess files",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Steve Grunwell",
+            "homepage": "https://stevegrunwell.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/liquidweb/htaccess-validator/issues",
+        "source": "https://github.com/liquidweb/htaccess-validator"
+    },
+    "minimum-stability": "stable",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "platform": {
+            "php": "7.4"
+        }
+    },
+    "scripts": {
+        "test": [
+            "@test:shellcheck",
+            "@test:unit"
+        ],
+        "test:shellcheck": "tests/shellcheck.sh",
+        "test:unit": "phpunit --testdox --color=always"
+    },
+    "scripts-descriptions": {
+        "test": "Run all tests",
+        "test:shellcheck": "Run Shellcheck on the script.",
+        "test:unit": "Run the PHPUnit test suite."
+    },
+    "bin": [
+        "bin/validate-htaccess"
+    ]
+}

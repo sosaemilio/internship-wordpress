@@ -1,0 +1,336 @@
+/*
+ * Load up our variables.
+ */
+/*
+ * Load up our mixins.
+ */
+.nexcess-mapps-dashboard-section-wrap {
+  clear: both;
+  display: block;
+  width: 97%;
+  padding: 1%;
+  margin: 0 0 10px 0; }
+  .nexcess-mapps-dashboard-section-wrap.nexcess-mapps-dashboard-intro-wrap {
+    padding-top: 0; }
+
+.nexcess-mapps-dashboard-form-section {
+  clear: both;
+  display: block;
+  width: 100%;
+  margin: 0 0 25px; }
+
+.nexcess-mapps-dashboard-intro-wrap .nexcess-mapps-dashboard-intro-headline {
+  padding-top: 0;
+  padding-bottom: 10px; }
+
+.nexcess-mapps-dashboard-intro-wrap .nexcess-mapps-dashboard-intro-subtitle {
+  margin: 0 0 7px; }
+  .nexcess-mapps-dashboard-intro-wrap .nexcess-mapps-dashboard-intro-subtitle:last-of-type {
+    margin-bottom: 0; }
+
+.nexcess-mapps-dashboard-failed-installs-wrap {
+  background: #fff;
+  border-left: 4px solid #dc3232;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.1);
+  margin: -10px 0 20px 0;
+  padding: 6px 12px 12px;
+  position: relative; }
+  .nexcess-mapps-dashboard-failed-installs-wrap .nexcess-mapps-dashboard-error-description {
+    margin: 0 0 7px;
+    font-weight: 600; }
+  .nexcess-mapps-dashboard-failed-installs-wrap .nexcess-mapps-dashboard-error-list {
+    margin: 0 0 0 21px;
+    list-style: square outside none; }
+    .nexcess-mapps-dashboard-failed-installs-wrap .nexcess-mapps-dashboard-error-list .nexcess-mapps-dashboard-error-item {
+      margin-bottom: 3px; }
+      .nexcess-mapps-dashboard-failed-installs-wrap .nexcess-mapps-dashboard-error-list .nexcess-mapps-dashboard-error-item:last-of-type {
+        margin-bottom: 0; }
+  .nexcess-mapps-dashboard-failed-installs-wrap.nexcess-mapps-dashboard-failed-installs-empty {
+    background-color: transparent;
+    border-left: 0 none;
+    box-shadow: none;
+    margin: 0;
+    padding: 0; }
+
+.nexcess-mapps-dashboard-form-wrap {
+  background-color: #fff;
+  border: 1px solid #ccc; }
+
+.nexcess-mapps-dashboard-form-block {
+  margin-bottom: 20px; }
+
+.nexcess-mapps-dashboard-fine-print {
+  margin: 0 0 5px;
+  font-style: italic;
+  color: #555; }
+  .nexcess-mapps-dashboard-fine-print .dashicons {
+    font-style: normal;
+    color: #555; }
+
+.nexcess-mapps-dashboard-plugin-list-grid {
+  /*
+	display: grid;
+	grid-gap: 10px;
+	grid-template-columns: 300px 300px 300px 300px;
+	grid-auto-columns: 300px;
+	*/
+  display: block;
+  overflow: hidden;
+  width: 100%; }
+  .nexcess-mapps-dashboard-plugin-list-grid .nexcess-mapps-dashboard-plugin-group {
+    display: block;
+    float: left;
+    width: auto;
+    min-width: 350px;
+    margin: 0 20px 20px 0; }
+
+.nexcess-mapps-dashboard-plugin-group input {
+  margin: 0 5px 0 0;
+  line-height: 16px; }
+
+.nexcess-mapps-dashboard-plugin-group label {
+  line-height: 16px; }
+
+.nexcess-mapps-dashboard-plugin-group img.nexcess-mapps-iconic-icon {
+  margin: 0 0 0 3px; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-group-title {
+  margin: 0 0 10px; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-group-list {
+  margin: 0; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-list-single {
+  margin: 0 0 3px; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-list-single-installed input.nexcess-mapps-dashboard-plugin-input-installed {
+  cursor: default; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-list-single-installed label.nexcess-mapps-dashboard-plugin-label-installed {
+  cursor: default;
+  color: #ccc;
+  font-weight: 300; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-list-single-installed img.nexcess-mapps-iconic-icon {
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=20)";
+  /* This works in IE 8 & 9 too */
+  /* ... but also 5, 6, 7 */
+  filter: alpha(opacity=20);
+  /* Modern Browsers */
+  opacity: 0.2; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-list-restricted input {
+  cursor: default; }
+
+.nexcess-mapps-dashboard-plugin-group .nexcess-mapps-dashboard-plugin-list-restricted label {
+  cursor: default;
+  color: #ccc;
+  text-decoration: line-through; }
+
+/*
+// Handle the group-specific CSS items here.
+.nexcess-mapps-dashboard-plugin-group {
+	display: inline-block;
+	vertical-align: top;
+	width: auto;
+
+	&.nexcess-mapps-dashboard-plugin-group-performance {
+		height: 100%;
+	}
+
+	&.nexcess-mapps-dashboard-plugin-group-features {
+		height: 100%;
+	}
+
+	&.nexcess-mapps-dashboard-plugin-optimization {
+		height: 40%;
+	}
+
+	&.nexcess-mapps-dashboard-plugin-integrations {
+		height: 40%;
+	}
+
+}
+*/
+/*
+.nexcess-mapps-dashboard-plugin-group-features {
+
+	.nexcess-mapps-dashboard-plugin-group-list-features {
+		column-count: 2;
+		column-gap: 0;
+
+		.nexcess-mapps-dashboard-plugin-list-single {
+			display: inline-block;
+			width: 100%;
+		}
+	}
+
+}
+*/
+.nexcess-mapps-dashboard-plugin-actions {
+  clear: both;
+  margin-bottom: 0;
+  padding: 0 40px 0 0;
+  width: auto; }
+
+.nexcess-mapps-dashboard-action-button-row {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%; }
+  .nexcess-mapps-dashboard-action-button-row .nexcess-mapps-dashboard-button-action {
+    display: inline-block;
+    vertical-align: middle;
+    width: auto;
+    margin: 0 10px 0 0;
+    padding: 0 5px; }
+    .nexcess-mapps-dashboard-action-button-row .nexcess-mapps-dashboard-button-action.nexcess-mapps-dashboard-button-reset-choices-action {
+      float: right;
+      margin-top: 4px;
+      margin-right: 10px; }
+      .nexcess-mapps-dashboard-action-button-row .nexcess-mapps-dashboard-button-action.nexcess-mapps-dashboard-button-reset-choices-action button {
+        height: 20px;
+        line-height: 16px;
+        font-size: 9px; }
+    .nexcess-mapps-dashboard-action-button-row .nexcess-mapps-dashboard-button-action.nexcess-mapps-dashboard-button-run-install-action {
+      float: right;
+      padding: 0;
+      margin-right: 0; }
+  .nexcess-mapps-dashboard-action-button-row .nexcess-spinner {
+    float: left; }
+
+#nexcess-installer-status-screen {
+  position: absolute;
+  display: block;
+  z-index: 999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  /* Theoretically for IE 8 & 9 (more valid) */
+  /* ...but not required as filter works too */
+  /* should come BEFORE filter */
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=$pct)";
+  /* This works in IE 8 & 9 too */
+  /* ... but also 5, 6, 7 */
+  filter: alpha(opacity=65);
+  /* Modern Browsers */
+  opacity: 0.65; }
+
+.nexcess-installer-status-loading-bg {
+  background-color: #000;
+  /* Theoretically for IE 8 & 9 (more valid) */
+  /* ...but not required as filter works too */
+  /* should come BEFORE filter */
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=$pct)";
+  /* This works in IE 8 & 9 too */
+  /* ... but also 5, 6, 7 */
+  filter: alpha(opacity=90);
+  /* Modern Browsers */
+  opacity: 0.9;
+  margin: 0 auto;
+  width: 400px;
+  margin-left: -200px;
+  text-align: center;
+  padding: 40px;
+  z-index: 1001;
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  display: inline-block;
+  -webkit-transition: none;
+  -moz-transition: none;
+  transition: none; }
+  .nexcess-installer-status-loading-bg .nexcess-installer-status-text {
+    color: #fff;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: 700;
+    text-shadow: -1px 0 0 #000; }
+  .nexcess-installer-status-loading-bg .nexcess-installer-status-bounce-1 {
+    -webkit-animation-delay: -0.32s;
+    animation-delay: -0.32s; }
+  .nexcess-installer-status-loading-bg .nexcess-installer-status-bounce-2 {
+    -webkit-animation-delay: -0.16s;
+    animation-delay: -0.16s;
+    margin: 0 10px; }
+
+.nexcess-installer-status-loading-bg > div {
+  width: 18px;
+  height: 18px;
+  background-color: #727272;
+  border-radius: 100%;
+  display: inline-block;
+  -webkit-animation: xfinity-loading 1.4s infinite ease-in-out both;
+  animation: xfinity-loading 1.4s infinite ease-in-out both; }
+
+@-webkit-keyframes xfinity-loading {
+  0%,
+  80%,
+  100% {
+    -webkit-transform: scale(0.6); }
+  40% {
+    -webkit-transform: scale(1);
+    background-color: #d1d1d1; } }
+
+@keyframes xfinity-loading {
+  0%,
+  80%,
+  100% {
+    -webkit-transform: scale(0.6);
+    transform: scale(0.6); }
+  40% {
+    -webkit-transform: scale(1);
+    transform: scale(1);
+    background-color: #d1d1d1; } }
+
+body.nexcess-selfinstall-body .nexcess-mapps-dashboard-page-wrap .notice.tiny-notice {
+  display: none;
+  visibility: hidden;
+  height: 0; }
+
+.nexcess-installer-big-notice {
+  background: #414141;
+  color: #fff;
+  border-radius: 3px;
+  line-height: 1.5;
+  border-left-width: 20px;
+  padding-top: 12px;
+  padding-bottom: 12px; }
+  .nexcess-installer-big-notice p {
+    font-size: 16px;
+    font-weight: 400; }
+    .nexcess-installer-big-notice p strong {
+      font-weight: 400; }
+  .nexcess-installer-big-notice a {
+    color: #fff; }
+    .nexcess-installer-big-notice a:hover, .nexcess-installer-big-notice a:focus {
+      text-decoration: none; }
+    .nexcess-installer-big-notice a.nexcess-license-prompt-link {
+      font-weight: 600; }
+
+body.nexcess-selfinstall-body .contextual-help-tabs li.active,
+body.nexcess-selfinstall-body .contextual-help-tabs li#tab-link-nexcess-mapps-dashboard-main-info-tab {
+  font-weight: 600; }
+
+body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table {
+  padding: 20px 5px 10px; }
+  body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table .nexcess-mapps-admin-tab-single-plugin th,
+  body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table .nexcess-mapps-admin-tab-single-plugin td {
+    border-bottom: 1px solid #ccc;
+    vertical-align: top;
+    margin: 0; }
+  body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table .nexcess-mapps-admin-tab-single-plugin-first th,
+  body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table .nexcess-mapps-admin-tab-single-plugin-first td {
+    border-top: 1px solid #ccc; }
+  body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table .nexcess-mapps-admin-tab-single-plugin th {
+    text-align: left;
+    font-weight: 600;
+    padding: 3px 5px; }
+  body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table .nexcess-mapps-admin-tab-single-plugin td {
+    padding: 3px 0; }
+  body.nexcess-selfinstall-body .nexcess-mapps-admin-tab-plugin-info-table .nexcess-mapps-admin-tab-single-plugin-data-link {
+    display: inline-block;
+    font-size: 11px;
+    margin-left: 4px; }

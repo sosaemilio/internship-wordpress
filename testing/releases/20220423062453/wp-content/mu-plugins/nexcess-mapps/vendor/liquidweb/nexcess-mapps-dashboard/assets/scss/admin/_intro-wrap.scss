@@ -1,0 +1,23 @@
+
+.nexcess-mapps-dashboard-intro-wrap {
+
+	.nexcess-mapps-dashboard-intro-headline {
+		padding-top: 0;
+		padding-bottom: 10px;
+	}
+
+	.nexcess-mapps-dashboard-intro-subtitle {
+		margin: 0 0 7px;
+
+		&:last-of-type {
+			margin-bottom: 0;
+		}
+	}
+}
+
+
+
+@media only screen and (max-width: 782px) {}
+
+
+@media only screen and (max-width: 600px) {}

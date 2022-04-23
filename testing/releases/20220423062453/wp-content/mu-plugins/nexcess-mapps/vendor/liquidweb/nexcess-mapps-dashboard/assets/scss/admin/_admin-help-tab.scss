@@ -1,0 +1,46 @@
+
+body.nexcess-selfinstall-body {
+
+	.contextual-help-tabs {
+
+		li.active,
+		li#tab-link-nexcess-mapps-dashboard-main-info-tab {
+			font-weight: 600;
+		}
+
+	}
+
+	.nexcess-mapps-admin-tab-plugin-info-table {
+
+		padding: 20px 5px 10px;
+
+		.nexcess-mapps-admin-tab-single-plugin th,
+		.nexcess-mapps-admin-tab-single-plugin td {
+			border-bottom: 1px solid #ccc;
+			vertical-align: top;
+			margin: 0;
+		}
+
+		.nexcess-mapps-admin-tab-single-plugin-first th,
+		.nexcess-mapps-admin-tab-single-plugin-first td {
+			border-top: 1px solid #ccc;
+		}
+
+		.nexcess-mapps-admin-tab-single-plugin th {
+			text-align: left;
+			font-weight: 600;
+			padding: 3px 5px;
+		}
+
+		.nexcess-mapps-admin-tab-single-plugin td {
+			padding: 3px 0;
+		}
+
+		.nexcess-mapps-admin-tab-single-plugin-data-link {
+			display: inline-block;
+			font-size: 11px;
+			margin-left: 4px;
+		}
+	}
+
+}

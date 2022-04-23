@@ -1,0 +1,30 @@
+
+.nexcess-mapps-dashboard-section-block {
+
+}
+
+.nexcess-mapps-dashboard-section-wrap {
+	clear: both;
+	display: block;
+	width: 97%;
+	padding: 1%;
+	margin: 0 0 10px 0;
+
+	&.nexcess-mapps-dashboard-intro-wrap {
+		padding-top: 0;
+	}
+}
+
+.nexcess-mapps-dashboard-form-section {
+	clear: both;
+	display: block;
+	width: 100%;
+	margin: 0 0 25px;
+}
+
+
+
+@media only screen and (max-width: 782px) {}
+
+
+@media only screen and (max-width: 600px) {}

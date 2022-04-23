@@ -1,0 +1,26 @@
+# ignore node dependency directories
+node_modules/
+
+# ignore composer dependency directories
+vendor/
+
+# ignore log files and databases
+*.log
+*.sql
+*.sqlite
+*.tar.gz
+*.zip
+
+# and some generic stuff
+.DS_Store
+.sass-cache
+
+phpcs.xml
+phpunit.xml
+package-lock.json
+Thumbs.db
+wp-cli.local.yml
+dist
+release
+
+_notes.txt

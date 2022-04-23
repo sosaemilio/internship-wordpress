@@ -1,0 +1,279 @@
+# Copyright (C) 2020 Nexcess
+# This file is distributed under the MIT.
+msgid ""
+msgstr ""
+"Project-Id-Version: Nexcess Managed Apps Dashboard 1.2.0\n"
+"Report-Msgid-Bugs-To: "
+"https://wordpress.org/support/plugin/nexcess-mapps-dashboard\n"
+"POT-Creation-Date: 2020-02-28 19:59:23+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2020-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Poedit-Country: United States\n"
+"X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-KeywordsList: "
+"__;_e;_x:1,2c;_ex:1,2c;_n:1,2;_nx:1,2,4c;_n_noop:1,2;_nx_noop:1,2,3c;esc_"
+"attr__;esc_html__;esc_attr_e;esc_html_e;esc_attr_x:1,2c;esc_html_x:1,2c;\n"
+"X-Poedit-Basepath: ../\n"
+"X-Poedit-SearchPath-0: .\n"
+"X-Poedit-Bookmarks: \n"
+"X-Textdomain-Support: yes\n"
+"X-Generator: grunt-wp-i18n 1.0.3\n"
+
+#: includes/admin/display.php:60
+msgid "Are you sure you want to reset your choices?"
+msgstr ""
+
+#: includes/admin/display.php:61
+msgid "Are you sure you want to install the selected plugins?"
+msgstr ""
+
+#. Plugin Name of the plugin/theme
+msgid "Nexcess Managed Apps Dashboard"
+msgstr ""
+
+#: includes/admin/display.php:75
+msgid "Nexcess Installer"
+msgstr ""
+
+#: includes/admin/display.php:114
+msgid "More Information"
+msgstr ""
+
+#: includes/admin/display.php:141
+msgid "You are not authorized to view this page."
+msgstr ""
+
+#: includes/admin/display.php:141 includes/admin/requests.php:46
+#: includes/admin/requests.php:51 includes/admin/requests.php:253
+#: includes/admin/requests.php:258
+msgid "Nexcess Managed Apps Install"
+msgstr ""
+
+#: includes/admin/notices.php:67
+msgid "Success! %d plugin was installed."
+msgid_plural "Success! %d plugins were installed."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/notices.php:114
+msgid ""
+"Some plugins you have installed require a license key provided by Nexcess. "
+"<a class=\"nexcess-license-prompt-link\" href=\"%s\">Click Here</a> to "
+"complete this process."
+msgstr ""
+
+#: includes/admin/notices.php:160
+msgid "Success! %d plugin was licensed."
+msgid_plural "Success! %d plugins were licensed."
+msgstr[0] ""
+msgstr[1] ""
+
+#: includes/admin/requests.php:46 includes/admin/requests.php:253
+msgid "You are not authorized to perform this function."
+msgstr ""
+
+#: includes/admin/requests.php:51 includes/admin/requests.php:258
+msgid "Your nonce failed. Please try again."
+msgstr ""
+
+#: includes/admin/requests.php:373 includes/admin/requests.php:465
+msgid "The requested installation instructions were not provided."
+msgstr ""
+
+#: includes/admin/requests.php:378
+msgid "The correct pre or post install argument was not passed."
+msgstr ""
+
+#: includes/admin/requests.php:572
+msgid "The requested licensing instructions were not provided."
+msgstr ""
+
+#: includes/datasets.php:73
+msgid "The raw plugin dataset could not be generated."
+msgstr ""
+
+#: includes/datasets.php:219 includes/datasets.php:288
+msgid "The required plugin IDs were not provided."
+msgstr ""
+
+#: includes/datasets.php:264
+msgid "The installation setup for these plugins could not be determined."
+msgstr ""
+
+#: includes/datasets.php:316
+msgid "The licensing setup for these plugins could not be determined."
+msgstr ""
+
+#: includes/external.php:51 includes/external.php:78
+msgid "The required plugin ID was not provided."
+msgstr ""
+
+#: includes/external.php:131
+msgid "The API returned a null response."
+msgstr ""
+
+#: includes/external.php:144
+msgid "The API returned a %d response code."
+msgstr ""
+
+#: includes/external.php:152
+msgid "The API response body was empty."
+msgstr ""
+
+#: includes/external.php:160
+msgid "The API response could not properly be decoded."
+msgstr ""
+
+#: includes/helpers.php:138
+msgid "Astra Theme"
+msgstr ""
+
+#: includes/helpers.php:156
+msgid "WooCommerce"
+msgstr ""
+
+#: includes/helpers.php:165
+msgid "additional plugins"
+msgstr ""
+
+#: includes/helpers.php:289 includes/helpers.php:321
+msgid "There was an error with your request."
+msgstr ""
+
+#: includes/helpers.php:296
+msgid "You did not select any plugins to install."
+msgstr ""
+
+#: includes/helpers.php:300
+msgid ""
+"There was an error attempting to install one or more plugins. See the list "
+"below."
+msgstr ""
+
+#: includes/helpers.php:304
+msgid "The required nonce was missing."
+msgstr ""
+
+#: includes/helpers.php:308
+msgid "The required nonce was invalid."
+msgstr ""
+
+#: includes/helpers.php:312
+msgid "The required nonce was missing or invalid."
+msgstr ""
+
+#: includes/helpers.php:317
+msgid "There was an unknown error with your request."
+msgstr ""
+
+#: includes/routing/process.php:131
+msgid "The required plugin slug was not provided."
+msgstr ""
+
+#: includes/routing/process.php:142 includes/routing/process.php:182
+msgid "The manual installation function is not available."
+msgstr ""
+
+#: includes/routing/process.php:157 includes/routing/process.php:197
+msgid "The required plugin source was not provided."
+msgstr ""
+
+#: includes/routing/process.php:165
+msgid "The name of the source file appears to be invalid."
+msgstr ""
+
+#: includes/routing/process.php:227 includes/routing/process.php:262
+msgid "The required licensing setup was not provided."
+msgstr ""
+
+#: includes/routing/process.php:232 includes/routing/process.php:267
+msgid "The required licensing setup was invalid."
+msgstr ""
+
+#: includes/routing/process.php:241
+msgid "The arguments required to set the license key could not be determined."
+msgstr ""
+
+#: includes/routing/process.php:294
+msgid "The licensing API response was not provided."
+msgstr ""
+
+#: includes/structure/formatting.php:165
+msgid "Select All %s"
+msgstr ""
+
+#: includes/structure/formatting.php:193
+msgid "Select All Plugins"
+msgstr ""
+
+#: includes/structure/formatting.php:201
+msgid "Install Selected Plugins"
+msgstr ""
+
+#: includes/structure/formatting.php:210
+msgid "Reset Choices"
+msgstr ""
+
+#: includes/structure/formatting.php:271 includes/structure/markup.php:267
+msgid "Want to learn more about the plugins we offer?"
+msgstr ""
+
+#: includes/structure/formatting.php:272 includes/structure/markup.php:268
+msgid "Select a group name from the menu and see details regarding the plugins."
+msgstr ""
+
+#: includes/structure/formatting.php:325
+msgid "Learn More"
+msgstr ""
+
+#: includes/structure/formatting.php:429
+msgid "This plugin is already installed."
+msgstr ""
+
+#: includes/structure/formatting.php:440
+msgid "This plugin requires that %s also be installed and activated."
+msgstr ""
+
+#: includes/structure/formatting.php:454
+msgid "Install the %s plugin."
+msgstr ""
+
+#: includes/structure/markup.php:103
+msgid "There was an error retrieving available plugin data. Please try again later."
+msgstr ""
+
+#: includes/structure/markup.php:182
+msgid "There was an error retrieving available plugin data."
+msgstr ""
+
+#: includes/structure/markup.php:328
+msgid ""
+"For more information regarding the plugins made available to you, click the "
+"help tab at the top of the screen."
+msgstr ""
+
+#: includes/utilities.php:311
+msgid "The required license key was not provided."
+msgstr ""
+
+#: includes/utilities.php:316
+msgid "The data related to the Iconic plugin could not be found."
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "https://www.nexcess.net"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid "Allows Nexcess customers to self-install specific plugins."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Nexcess"
+msgstr ""

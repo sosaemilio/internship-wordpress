@@ -1,0 +1,26 @@
+
+.nexcess-mapps-dashboard-form-wrap {
+	background-color: $plugin_block_backg;
+	border: 1px solid $plugin_block_border;
+}
+
+.nexcess-mapps-dashboard-form-block {
+	margin-bottom: 20px;
+}
+
+.nexcess-mapps-dashboard-fine-print {
+	margin: 0 0 5px;
+	font-style: italic;
+	color: #555;
+
+	.dashicons {
+		font-style: normal;
+		color: #555;
+	}
+}
+
+
+@media only screen and (max-width: 782px) {}
+
+
+@media only screen and (max-width: 600px) {}
