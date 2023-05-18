@@ -65,6 +65,9 @@ class RegressionSites extends Integration {
 
 		// If the site is running Sucuri, ensure scans aren't being run.
 		remove_all_actions( 'sucuriscan_scheduled_scan' );
+
+		// If the site is a regression site, don't run the action scheduler.
+		remove_all_actions( 'action_scheduler_run_queue' );
 	}
 
 	/**

@@ -2,7 +2,7 @@
 
 namespace Nexcess\MAPPS\Services\Importers;
 
-use Nexcess\MAPPS\Exceptions\IngestionException;
+use StellarWP\PluginFramework\Exceptions\IngestionException;
 
 class AttachmentImporter {
 
@@ -13,7 +13,7 @@ class AttachmentImporter {
 	 * @param mixed[] $args Optional. Additional arguments to pass to wp_insert_attachment().
 	 *                      Default is empty.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\IngestionException If the attachment cannot be imported.
+	 * @throws \StellarWP\PluginFramework\Exceptions\IngestionException If the attachment cannot be imported.
 	 *
 	 * @return int The ID of the newly-imported attachment.
 	 */

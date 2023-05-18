@@ -2,7 +2,7 @@
 
 namespace Nexcess\MAPPS\Concerns;
 
-use Nexcess\MAPPS\Exceptions\MissingTemplateException;
+use StellarWP\PluginFramework\Exceptions\TemplateException;
 
 trait HasAdminPages {
 
@@ -35,7 +35,7 @@ trait HasAdminPages {
 			ob_start();
 			include $filepath;
 			$content = ob_get_clean();
-		} catch ( MissingTemplateException $e ) {
+		} catch ( TemplateException $e ) {
 			$content = defined( 'WP_DEBUG' ) && WP_DEBUG
 				? sprintf( '<!-- %s -->', $e->getMessage() )
 				: '';
@@ -62,8 +62,8 @@ trait HasAdminPages {
 	 * @param string $template The template name, which should be relative to the
 	 *                         nexcess-mapps/templates/ directory without a file extension.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\MissingTemplateException If the given template cannot
-	 *                                                            be found.
+	 * @throws \StellarWP\PluginFramework\Exceptions\TemplateException If the given template cannot
+	 *                                                                 be found.
 	 *
 	 * @return string Either the system path to the template or an empty string if the template
 	 *                could not be found.
@@ -80,7 +80,7 @@ trait HasAdminPages {
 		$file = apply_filters( 'nexcess_mapps_branding_template_file', $file, $template );
 
 		if ( ! file_exists( $file ) ) {
-			throw new MissingTemplateException( sprintf(
+			throw new TemplateException( sprintf(
 				'The MAPPS template file at %1$s was not found.',
 				$file
 			) );

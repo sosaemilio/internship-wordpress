@@ -7,7 +7,7 @@
 namespace Nexcess\MAPPS\Widgets;
 
 use Nexcess\MAPPS\Concerns\HasAdminPages;
-use Nexcess\MAPPS\Exceptions\ImmutableValueException;
+use StellarWP\PluginFramework\Exceptions\ImmutableValueException;
 
 /**
  * @property-read string $context
@@ -90,7 +90,7 @@ class DashboardWidget {
 	 * @param string $property The property name.
 	 * @param mixed  $value    The value being assigned.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ImmutableValueException If the property is immutable.
+	 * @throws \StellarWP\PluginFramework\Exceptions\ImmutableValueException If the property is immutable.
 	 */
 	public function __set( $property, $value ) {
 		throw new ImmutableValueException(

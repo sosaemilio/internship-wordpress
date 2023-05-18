@@ -6,9 +6,9 @@
 
 namespace Nexcess\MAPPS\Services;
 
-use Nexcess\MAPPS\Exceptions\InvalidDropInException;
 use Nexcess\MAPPS\Support\Filesystem;
 use Nexcess\MAPPS\Support\Helpers;
+use StellarWP\PluginFramework\Exceptions\InvalidDropInException;
 
 class DropIn {
 

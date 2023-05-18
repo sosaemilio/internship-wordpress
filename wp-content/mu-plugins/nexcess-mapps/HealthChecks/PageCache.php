@@ -6,7 +6,7 @@
 
 namespace Nexcess\MAPPS\HealthChecks;
 
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 
 class PageCache extends HealthCheck {
 

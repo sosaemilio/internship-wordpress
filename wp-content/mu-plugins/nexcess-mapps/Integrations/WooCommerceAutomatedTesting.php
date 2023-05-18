@@ -11,11 +11,14 @@ use Nexcess\MAPPS\Concerns\HasCronEvents;
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
 use Nexcess\MAPPS\Concerns\MakesHttpRequests;
 use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
+use Nexcess\MAPPS\Modules\Telemetry;
 use Nexcess\MAPPS\Routes\WooCommerceAutomatedTestingRoute;
 use Nexcess\MAPPS\Services\Managers\RouteManager;
 use Nexcess\MAPPS\Services\Options;
 use Nexcess\MAPPS\Settings;
+use Nexcess\MAPPS\Support\CacheRemember;
 use WC_Customer;
+use WC_Data_Store;
 use WC_Order;
 use WC_Product;
 
@@ -60,6 +63,11 @@ class WooCommerceAutomatedTesting extends Integration {
 	 * Cache key for recent results.
 	 */
 	const RESULTS_CACHE_KEY = 'nexcess_mapps_wc_automated_testing_results';
+
+	/**
+	 * The key used in the telemetry report which contains the relevant integration info.
+	 */
+	const TELEMETRY_FEATURE_KEY = 'woocommerce_automated_testing';
 
 	/**
 	 * @param \Nexcess\MAPPS\Settings                       $settings
@@ -123,6 +131,25 @@ class WooCommerceAutomatedTesting extends Integration {
 			[ self::CREDENTIAL_ROTATION_HOOK, [ $this, 'rotateTestUserCredentials' ] ],
 			[ Maintenance::WEEKLY_MAINTENANCE_CRON_ACTION, [ $this, 'updateSite' ] ],
 			[ 'Nexcess\MAPPS\Options\Update', [ $this, 'enableOrDisable' ], 10, 3 ],
+			[ 'wp_head', [ $this, 'noIndexForTestProduct' ] ],
+			[ 'nexcess_mapps_wcat_enabled', [ $this, 'addTestProductAdminUser' ] ],
+			[ 'nexcess_mapps_wcat_disabled', [ $this, 'deleteTestProductAdminUser' ] ],
+		];
+	}
+
+	/**
+	 * Retrieve all filters for the integration.
+	 *
+	 * @return array[]
+	 */
+	protected function getFilters() {
+		return [
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'addFeatureToTelemetry' ] ],
+			[ 'wpseo_exclude_from_sitemap_by_post_ids', [ $this, 'wpseoHideTestProductFromSitemap' ] ],
+			[ 'wp_sitemaps_posts_query_args', [ $this, 'wphideTestProductFromSitemap' ] ],
+			// This filter is here to catch the case where a customer might unpublish and republish the WCAT product.
+			// We never want the WCAT test product to be publicized, ever.
+			[ 'publicize_should_publicize_published_post', [ $this, 'hideTestProductFromJetPack' ], 10, 2 ],
 		];
 	}
 
@@ -135,6 +162,8 @@ class WooCommerceAutomatedTesting extends Integration {
 	 * @return mixed[]
 	 */
 	public function getSiteInfo() {
+		$product = $this->getTestProduct();
+
 		return [
 			'credentials' => $this->getTestCredentials(),
 			'testCookie'  => [
@@ -146,7 +175,7 @@ class WooCommerceAutomatedTesting extends Integration {
 				'checkout'  => get_permalink( get_option( 'woocommerce_checkout_page_id' ) ),
 				'home'      => site_url( '/' ),
 				'myAccount' => get_permalink( get_option( 'woocommerce_myaccount_page_id' ) ),
-				'product'   => get_permalink( $this->getTestProduct()->get_id() ),
+				'product'   => $product ? get_permalink( $product->get_id() ) : false,
 				'shop'      => get_permalink( get_option( 'woocommerce_shop_page_id' ) ),
 			],
 		];
@@ -179,9 +208,10 @@ class WooCommerceAutomatedTesting extends Integration {
 		$this->options->addOption(
 			[ self::OPTION_NAME, 'enable_wcat' ],
 			'checkbox',
-			__( 'WooCommerce Automated Testing', 'nexcess-mapps' ),
+			__( 'Enable WooCommerce Automated Testing', 'nexcess-mapps' ),
 			[
 				'description' => __( 'Automatically perform a series of tests to ensure the entire customer flow works correctly.', 'nexcess-mapps' ),
+				'default'     => false,
 			]
 		);
 	}
@@ -204,15 +234,7 @@ class WooCommerceAutomatedTesting extends Integration {
 			return;
 		}
 
-		// If we're switching from off to on, then we want to connect the site.
-		if ( $new ) {
-			$this->updateSite( [ 'is_active' => true ] );
-			$this->getOption()->set( 'enable_wcat', true )->save();
-
-		} else {
-			$this->updateSite( [ 'is_active' => false ] );
-			$this->getOption()->set( 'enable_wcat', false )->save();
-		}
+		$this->forceEnableOrDisable( (bool) $new );
 	}
 
 	/**
@@ -223,6 +245,8 @@ class WooCommerceAutomatedTesting extends Integration {
 	public function forceEnableOrDisable( $state ) {
 		$this->updateSite( [ 'is_active' => (bool) $state ] );
 		$this->getOption()->set( 'enable_wcat', (bool) $state )->save();
+
+		do_action( 'nexcess_mapps_wcat_' . ( $state ? 'enabled' : 'disabled' ) );
 	}
 
 	/**
@@ -260,7 +284,10 @@ class WooCommerceAutomatedTesting extends Integration {
 		$this->getOption()
 			->set( 'api_key', $body->api_key ?: null )
 			->set( 'site_id', $body->site_id ?: null )
+			->set( 'enable_wcat', $body->api_key && $body->site_id )
 			->save();
+
+		do_action( 'nexcess_mapps_wcat_enabled' );
 	}
 
 	/**
@@ -273,6 +300,11 @@ class WooCommerceAutomatedTesting extends Integration {
 		add_filter( 'send_password_change_email', '__return_false', PHP_INT_MAX );
 
 		$customer = $this->getTestCustomer();
+
+		if ( ! $customer ) {
+			$customer = $this->createTestCustomer();
+		}
+
 		$customer->set_password( wp_generate_password() );
 		$customer->save();
 	}
@@ -288,6 +320,11 @@ class WooCommerceAutomatedTesting extends Integration {
 	 * }
 	 */
 	public function updateSite( array $options = [] ) {
+		// Don't do anything with cron if the setting is disabled.
+		if ( wp_doing_cron() && ! $this->getOption()->get( 'enable_wcat', false ) ) {
+			return;
+		}
+
 		$url  = sprintf( '%s/api/sites/%s', $this->settings->wc_automated_testing_url, $this->getOption()->site_id );
 		$body = [
 			'url' => get_site_url(),
@@ -342,7 +379,13 @@ class WooCommerceAutomatedTesting extends Integration {
 
 		// Make the test product visible in the catalog.
 		add_filter( 'woocommerce_product_is_visible', function ( $visible, $product_id ) {
-			return $product_id === $this->getTestProduct()->get_id() ? true : $visible;
+			$product = $this->getTestProduct();
+
+			if ( ! $product ) {
+				return false;
+			}
+
+			return $product_id === $product->get_id() ? true : $visible;
 		}, PHP_INT_MAX, 2 );
 
 		// Force-delete orders made during test mode upon hitting the "thank you" screen.
@@ -358,7 +401,7 @@ class WooCommerceAutomatedTesting extends Integration {
 	 * @return array[] Recent results, grouped by test name.
 	 */
 	protected function getRecentResults() {
-		return remember_transient( self::RESULTS_CACHE_KEY, function () {
+		return CacheRemember::remember_transient( self::RESULTS_CACHE_KEY, function () {
 			$url = sprintf(
 				'%s/api/sites/%s',
 				$this->settings->wc_automated_testing_url,
@@ -386,7 +429,7 @@ class WooCommerceAutomatedTesting extends Integration {
 	 * to enable test mode, which will only remain valid for a short time.
 	 */
 	protected function getTestCookie() {
-		return remember_transient( 'nexcess_mapps_wc_automated_testing_cookie_value', function () {
+		return CacheRemember::remember_transient( 'nexcess_mapps_wc_automated_testing_cookie_value', function () {
 			return wp_generate_password();
 		}, 15 * MINUTE_IN_SECONDS );
 	}
@@ -411,6 +454,11 @@ class WooCommerceAutomatedTesting extends Integration {
 
 		$password = wp_generate_password();
 		$customer = $this->getTestCustomer();
+
+		if ( ! $customer ) {
+			$customer = $this->createTestCustomer();
+		}
+
 		$customer->set_password( $password );
 		$customer->save();
 
@@ -431,9 +479,9 @@ class WooCommerceAutomatedTesting extends Integration {
 	/**
 	 * Retrieve the test customer.
 	 *
-	 * If the test user does not yet exist, it will be created.
+	 * If the test user does not yet exist, return false.
 	 *
-	 * @return WC_Customer
+	 * @return WC_Customer|false
 	 */
 	protected function getTestCustomer() {
 		$customer_id = $this->getOption()->customer_id;
@@ -441,21 +489,35 @@ class WooCommerceAutomatedTesting extends Integration {
 		if ( $customer_id ) {
 			$customer = new WC_Customer( $customer_id );
 
-			// Only return the customer object if it actually exists.
-			if ( $customer->get_id() ) {
+			// WC_Customer will return a new customer with an ID of 0 if
+			// one could not be found with the given ID.
+			if ( is_a( $customer, 'WC_Customer' ) && 0 !== $customer->get_id() ) {
 				return $customer;
 			}
 		}
 
-		$customer = new WC_Customer();
-		$customer->set_username( uniqid( 'nexcess_wc_automated_testing_' ) );
-		$customer->set_password( wp_generate_password() );
-		$customer->set_email( uniqid( 'wc-automated-testing+' ) . '@nexcess.net' );
-		$customer->set_display_name( 'Nexcess WooCommerce Automated Testing User' );
+		return false;
+	}
 
-		$customer_id = $customer->save();
+	/**
+	 * Creates a new test customer if one does not exist. Avoids flooding the DB with test customers.
+	 *
+	 * @return WC_Customer
+	 */
+	protected function createTestCustomer() {
+		$customer = $this->getTestCustomer();
 
-		$this->getOption()->set( 'customer_id', $customer_id )->save();
+		if ( false === $customer ) {
+			$customer = new WC_Customer();
+			$customer->set_username( uniqid( 'nexcess_wc_automated_testing_' ) );
+			$customer->set_password( wp_generate_password() );
+			$customer->set_email( uniqid( 'wc-automated-testing+' ) . '@nexcess.net' );
+			$customer->set_display_name( 'Nexcess WooCommerce Automated Testing User' );
+
+			$customer_id = $customer->save();
+
+			$this->getOption()->set( 'customer_id', $customer_id )->save();
+		}
 
 		return $customer;
 	}
@@ -465,34 +527,57 @@ class WooCommerceAutomatedTesting extends Integration {
 	 *
 	 * If the test product does not yet exist, it will be created.
 	 *
-	 * @return WC_Product
+	 * @return WC_Product|false
 	 */
 	protected function getTestProduct() {
 		$product_id = $this->getOption()->product_id;
 
 		if ( $product_id ) {
 			try {
-				return new WC_Product( $product_id );
+				$product = new WC_Product( $product_id );
+
+				// In case WC_Product returns a new customer with an ID of 0 if
+				// one could not be found with the given ID.
+				if ( is_a( $product, 'WC_Product' ) && 0 !== $product->get_id() ) {
+					return $product;
+				}
 			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
 			} catch ( \Exception $e ) {
-				// The product couldn't be found, so create a new one instead.
+				// The given test product was not valid, so we should fallback to the
+				// default response if one was not found in the first place.
 			}
 		}
 
-		$product = new WC_Product();
-		$product->set_status( 'publish' );
-		$product->set_name( 'WooCommerce Automated Testing Product' );
-		$product->set_short_description( 'An example product for automated testing.' );
-		$product->set_description( 'This is a placeholder product used for automatically testing your WooCommerce store. It\'s designed to be hidden from all customers.' );
-		$product->set_regular_price( '1.00' );
-		$product->set_price( '1.00' );
-		$product->set_stock_status( 'instock' );
-		$product->set_stock_quantity( 5 );
-		$product->set_catalog_visibility( 'hidden' );
+		return false;
+	}
 
-		$product_id = $product->save();
+	/**
+	 * Creates test product if one does not exist. Avoids flooding the DB with test products.
+	 *
+	 * @return WC_Product
+	 */
+	protected function createTestProduct() {
+		$product = $this->getTestProduct();
 
-		$this->getOption()->set( 'product_id', $product_id )->save();
+		if ( ! $product ) {
+			$product = new WC_Product();
+			$product->set_status( 'publish' );
+			$product->set_name( 'WooCommerce Automated Testing Product' );
+			$product->set_short_description( 'An example product for automated testing.' );
+			$product->set_description( 'This is a placeholder product used for automatically testing your WooCommerce store. It\'s designed to be hidden from all customers.' );
+			$product->set_regular_price( '1.00' );
+			$product->set_price( '1.00' );
+			$product->set_stock_status( 'instock' );
+			$product->set_stock_quantity( 5 );
+			$product->set_catalog_visibility( 'hidden' );
+
+			// This filter is added here to prevent the WCAT test product from being publicized on creation.
+			add_filter( 'publicize_should_publicize_published_post', '__return_false' );
+
+			$product_id = $product->save();
+
+			$this->getOption()->set( 'product_id', $product_id )->save();
+		}
 
 		return $product;
 	}
@@ -526,5 +611,143 @@ class WooCommerceAutomatedTesting extends Integration {
 			__( 'This check did not complete successfully', 'nexcess-mapps' ),
 			_x( 'Failure', 'WooCommerce automated testing check status', 'nexcess-mapps' )
 		);
+	}
+
+	/**
+	 * Remove the WCAT test user and test product if WCAT is disabled.
+	 */
+	public function deleteTestProductAdminUser() {
+		$customer = $this->getTestCustomer();
+		$product  = $this->getTestProduct();
+
+		if ( $customer ) {
+			$customer->delete();
+		}
+
+		if ( $product ) {
+			try {
+				$data_store = WC_Data_Store::load( 'product' );
+				$data_store->delete( $product, [ 'force_delete' => true ] );
+			// phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			} catch ( \Exception $e ) {
+				esc_attr_e( 'No product to delete. Have you enabled WCAT previously?', 'nexcess-mapps' );
+			}
+		}
+
+		// We always want to be able to remove these from the wp_option in case user deletes product or customer
+		// manually from DB instead of using enable/disable.
+		$this->getOption()->delete( 'customer_id' )->delete( 'product_id' )->save();
+
+		$this->updateSite( [ 'is_active' => false ] );
+	}
+
+	/**
+	 * Add the WCAT test user and test product back in if WCAT is re-enabled.
+	 */
+	public function addTestProductAdminUser() {
+		if ( ! $this->getTestCustomer() ) {
+			$this->createTestCustomer();
+		}
+
+		if ( ! $this->getTestProduct() ) {
+			$this->createTestProduct();
+		}
+	}
+
+	/**
+	 * Check if product id exists.
+	 *
+	 * @return int|bool
+	 */
+	public function getProductId() {
+		$product = $this->getTestProduct();
+
+		if ( $product ) {
+			$product_id = $product->get_id();
+
+			return $product_id;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Add noindex to the test product.
+	 */
+	public function noIndexForTestProduct() {
+		$product_id = $this->getProductId();
+
+		if ( is_int( $product_id ) && 0 !== $product_id && is_single( $product_id ) ) {
+			echo '<meta name="robots" content="noindex, nofollow"/>';
+		}
+	}
+
+	/**
+	 * Hide test product from Yoast sitemap. Takes $excluded_post_ids if any set, adds our $product_id to the array and
+	 * returns the array.
+	 *
+	 * @param array $excluded_posts_ids
+	 *
+	 * @return array[]
+	 */
+	public function wpseoHideTestProductFromSitemap( $excluded_posts_ids = [] ) {
+		$product_id = $this->getProductId();
+
+		if ( $product_id ) {
+			array_push( $excluded_posts_ids, $product_id );
+		}
+
+		return $excluded_posts_ids;
+	}
+
+	/**
+	 * Hide test product from WordPress' sitemap.
+	 *
+	 * @param array $args
+	 *
+	 * @return array
+	 */
+	public function wpHideTestProductFromSiteMap( $args ) {
+		$product_id = $this->getProductId();
+
+		if ( $product_id ) {
+			$args['post__not_in']   = isset( $args['post__not_in'] ) ? $args['post__not_in'] : [];
+			$args['post__not_in'][] = $product_id;
+		}
+
+		return $args;
+	}
+
+	/**
+	 * Hide test product from JetPack's Publicize module and from Jetpack Social.
+	 *
+	 * @param bool     $should_publicize
+	 * @param \WP_Post $post
+	 *
+	 * @return bool|array
+	 */
+	public function hideTestProductFromJetPack( $should_publicize, $post ) {
+		if ( $post ) {
+			$product_id = $this->getProductId();
+
+			if ( $product_id === $post->ID ) {
+				return false;
+			}
+		}
+
+		return $should_publicize;
+	}
+
+	/**
+	 * Adds feature integration information to the telemetry report.
+	 *
+	 * @param array[] $report The gathered report data.
+	 *
+	 * @return array[] The $report array.
+	 */
+	public function addFeatureToTelemetry( array $report ) {
+		$report['features'][ self::TELEMETRY_FEATURE_KEY ] = $this->getOption()->get( 'enable_wcat' );
+
+		return $report;
 	}
 }

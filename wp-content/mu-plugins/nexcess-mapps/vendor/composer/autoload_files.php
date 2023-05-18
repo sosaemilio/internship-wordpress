@@ -8,4 +8,5 @@ $baseDir = dirname(dirname($vendorDir));
 return array(
     'e67733b1c67d30ae0534fc358ce6ccd9' => $vendorDir . '/stevegrunwell/wp-cache-remember/wp-cache-remember.php',
     'ac949ce40a981819ba132473518a9a31' => $vendorDir . '/wp-cli/wp-config-transformer/src/WPConfigTransformer.php',
+    'b6eeeebfa413601726a1ec0139d0cba9' => $vendorDir . '/stellarwp/plugin-framework/src/Support/Compat.php',
 );

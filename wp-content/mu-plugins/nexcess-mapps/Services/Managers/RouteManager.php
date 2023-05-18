@@ -7,9 +7,9 @@
 namespace Nexcess\MAPPS\Services\Managers;
 
 use Nexcess\MAPPS\Container;
-use Nexcess\MAPPS\Exceptions\RouteException;
 use Nexcess\MAPPS\Routes;
 use Nexcess\MAPPS\Routes\RestRoute;
+use StellarWP\PluginFramework\Exceptions\RouteException;
 
 class RouteManager {
 

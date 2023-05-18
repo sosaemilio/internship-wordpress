@@ -8,7 +8,7 @@ use Nexcess\MAPPS\Routes\PerformanceMonitorAuthRoute;
 use Nexcess\MAPPS\Routes\PerformanceMonitorReportRoute;
 use Nexcess\MAPPS\Routes\RestRoute;
 use Nexcess\MAPPS\Services\Managers\RouteManager;
-use Nexcess\MAPPS\Support\VisualRegressionUrl;
+use StellarWP\PluginFramework\Support\VisualRegressionUrl;
 
 class Api {
 	use HasCronEvents;

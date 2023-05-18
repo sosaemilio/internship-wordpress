@@ -4,7 +4,7 @@ namespace Nexcess\MAPPS\Concerns;
 
 use LiquidWeb\HtaccessValidator\Exceptions\ValidationException;
 use LiquidWeb\HtaccessValidator\Validator;
-use Nexcess\MAPPS\Exceptions\InvalidApacheConfigException;
+use StellarWP\PluginFramework\Exceptions\InvalidApacheConfigException;
 
 use const Nexcess\MAPPS\VENDOR_DIR;
 
@@ -123,7 +123,7 @@ trait ManagesHtaccess {
 	 * @param string $contents The contents of the Htaccess file.
 	 * @param string $file     Optional. The Htaccess file to write to. Default is empty.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InvalidApacheConfigException If the contents don't pass validation.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InvalidApacheConfigException If the contents don't pass validation.
 	 *
 	 * @return bool True if the file was updated, false otherwise.
 	 */
@@ -168,7 +168,7 @@ trait ManagesHtaccess {
 	 *
 	 * @param string $contents The contents to be written.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InvalidApacheConfigException If the contents don't pass validation.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InvalidApacheConfigException If the contents don't pass validation.
 	 *
 	 * @return bool Will return true if the contents pass validation.
 	 */

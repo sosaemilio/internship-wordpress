@@ -422,7 +422,7 @@ function create_button_input_class( $plugin_group = '', $primary = false, $custo
 function create_plugin_list_formatting( $plugin_slug = '', $plugin_args = array(), $current_plugins = array() ) {
 
 	// First run the check for being enabled.
-	if ( in_array( $plugin_slug, $current_plugins ) ) {
+	if ( in_array( $plugin_slug, (array) $current_plugins ) ) {
 		return array(
 			'status' => 'installed',
 			'flag'   => 'disabled readonly checked',

@@ -31,10 +31,11 @@ add_action( Core\HOOK_PREFIX . 'after_licensing_run', __NAMESPACE__ . '\maybe_fi
  *
  * @param string  $plugin        Path to the plugin file relative to the plugins directory.
  * @param boolean $network_wide  Whether this is multisite and happening network wide.
+ *                               Default is false.
  *
  * @return void
  */
-function purge_cache_on_activate( $plugin, $network_wide ) {
+function purge_cache_on_activate( $plugin, $network_wide = false ) {
 	Utilities\purge_current_plugin_cache();
 }
 
@@ -43,10 +44,11 @@ function purge_cache_on_activate( $plugin, $network_wide ) {
  *
  * @param string  $plugin        Path to the plugin file relative to the plugins directory.
  * @param boolean $network_wide  Whether this is multisite and happening network wide.
+ *                               Default is false.
  *
  * @return void
  */
-function purge_cache_on_deactivate( $plugin, $network_wide ) {
+function purge_cache_on_deactivate( $plugin, $network_wide = false ) {
 	Utilities\purge_current_plugin_cache();
 }
 

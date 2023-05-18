@@ -2,7 +2,7 @@
 
 namespace Nexcess\MAPPS\Concerns;
 
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 
 use const Nexcess\MAPPS\VENDOR_DIR;
 
@@ -87,7 +87,7 @@ trait HasWordPressDependencies {
 	 *
 	 * @see get_plugins()
 	 *
-	 * @param string $plugin The directory/file path.
+	 * @param string $plugin The plugin directory and file.
 	 *
 	 * @return bool
 	 */
@@ -283,5 +283,50 @@ trait HasWordPressDependencies {
 		}
 
 		deactivate_plugins( $plugins, $silent );
+	}
+
+	/**
+	 * Get specified plugin's version.
+	 *
+	 * @param string $plugin_file "plugin-directory/plugin-file.php".
+	 *
+	 * @return string
+	 */
+	public function getPluginVersion( $plugin_file ) {
+		if ( ! function_exists( 'get_plugin_data' ) ) {
+			include_once ABSPATH . 'wp-admin/includes/plugin.php';
+		}
+
+		$plugins = get_plugins();
+
+		if ( ! array_key_exists( $plugin_file, $plugins ) ) {
+			return '';
+		}
+
+		$data = $plugins[ $plugin_file ];
+
+		if ( empty( $data['Version'] ) ) {
+			return '';
+		}
+
+		return $data['Version'];
+	}
+
+	/**
+	 * Get plugin's version, and compare.
+	 *
+	 * @param string $plugin_file
+	 * @param string $expected_version
+	 *
+	 * @return bool
+	 */
+	public function isPluginVersion( $plugin_file, $expected_version ) {
+		$actual_version = $this->getPluginVersion( $plugin_file );
+
+		if ( empty( $actual_version ) ) {
+			return false;
+		}
+
+		return $actual_version === $expected_version;
 	}
 }

@@ -2,12 +2,14 @@
 
 namespace Nexcess\MAPPS\Integrations\StoreBuilder;
 
+use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
-use Nexcess\MAPPS\Integrations\StoreBuilder;
 
 class StoreBuilderFTC {
+	use HasHooks;
 	use ManagesGroupedOptions;
 
+	const AJAX_STARTED_ACTION  = 'storebuilder_ftc_started';
 	const OPTION_NAME          = '_storebuilder_ftc';
 	const STOREBUILDER_VERSION = 'storebuilder_version';
 
@@ -49,6 +51,11 @@ class StoreBuilderFTC {
 	/**
 	 * @var string
 	 */
+	private $state;
+
+	/**
+	 * @var string
+	 */
 	private $postcode;
 
 	/**
@@ -60,6 +67,39 @@ class StoreBuilderFTC {
 	 * @var array
 	 */
 	public $errors = [];
+
+	/**
+	 * Construct.
+	 */
+	public function __construct() {
+		$this->addHooks();
+	}
+
+	/**
+	 * Sets the actions.
+	 */
+	protected function getActions() {
+		return [
+			[ 'wp_ajax_' . self::AJAX_STARTED_ACTION, [ $this, 'ajaxStarted' ] ],
+		];
+	}
+
+	/**
+	 * AJAX action to register telemetry that wizard started.
+	 */
+	public function ajaxStarted() {
+		if ( empty( $_REQUEST['_wpnonce'] ) ) {
+			return wp_send_json_error( 'Missing required parameters.', 400 );
+		}
+
+		if ( ! wp_verify_nonce( $_REQUEST['_wpnonce'], self::AJAX_STARTED_ACTION ) ) {
+			return wp_send_json_error( 'Nonce is invalid.', 403 );
+		}
+
+		do_action( 'wme_event_wizard_started', 'ftc' );
+
+		return wp_send_json_success();
+	}
 
 	/**
 	 * Returns the current users user_login.
@@ -268,32 +308,67 @@ class StoreBuilderFTC {
 	}
 
 	/**
-	 * Gets the WooCommerce Region.  The region is a mix of the country and
-	 * state formatted as Country:State.
+	 * Gets the WooCommerce Store Region.
 	 *
 	 * @return string
 	 */
 	public function getRegion() {
 		if ( ! $this->region ) {
 			$base         = wc_get_base_location();
-			$this->region = $base['country'] . ':' . $base['state'];
+			$this->region = $base['country'];
 		}
 		return $this->region;
 	}
 
 	/**
-	 * Sets the WooCommerce Region.
+	 * Sets the region property.
+	 *
+	 * Glued together with state in $this->saveRegionAndState()
+	 *
+	 * @see $this->saveRegionAndState()
 	 *
 	 * @param string $region
 	 */
 	public function setRegion( $region ) {
 		$region = filter_var( $region, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+
 		if ( $region === $this->getRegion() ) {
 			return;
 		}
-		if ( ! update_option( 'woocommerce_default_country', $region ) ) {
-			$this->errors[] = [ 'region' => __( 'Invalid Region', 'nexcess-mapps' ) ];
+
+		$this->region = $region;
+	}
+
+	/**
+	 * Gets the WooCommerce Store State.
+	 *
+	 * @return string
+	 */
+	public function getState() {
+		if ( ! $this->state ) {
+			$base        = wc_get_base_location();
+			$this->state = $base['state'];
 		}
+		return $this->state;
+	}
+
+	/**
+	 * Sets the state property.
+	 *
+	 * Glued together with region in $this->saveRegionAndState()
+	 *
+	 * @see $this->saveRegionAndState()
+	 *
+	 * @param string $state
+	 */
+	public function setState( $state ) {
+		$state = filter_var( $state, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+
+		if ( $this->getState() === $state ) {
+			return;
+		}
+
+		$this->state = $state;
 	}
 
 	/**
@@ -362,47 +437,81 @@ class StoreBuilderFTC {
 	 *
 	 * @return mixed
 	 */
-	public function getProductstype() {
-		return ( $this->getOption()->producttype ) ? $this->getOption()->producttype : [];
+	public function getProductsType() {
+		return $this->getOption()->get( 'producttype', [] );
 	}
 
 	/**
-	 * Sets the productType.
+	 * Sets the productType, if not already set.
 	 *
-	 * @param array $productstype
+	 * @param array $new_product_type
 	 */
-	public function setProductstype( $productstype = [] ) {
-		$productstype = filter_var( $productstype, FILTER_SANITIZE_FULL_SPECIAL_CHARS, [ 'flags' => FILTER_FORCE_ARRAY ] );
+	public function setProductstype( $new_product_type = [] ) {
+		$new_product_type = filter_var( $new_product_type, FILTER_SANITIZE_FULL_SPECIAL_CHARS, [ 'flags' => FILTER_FORCE_ARRAY ] );
 
-		if ( ! $productstype || $productstype === $this->getProductstype() ) {
+		if ( empty( $new_product_type ) ) {
 			return;
 		}
 
-		$this->getOption()->producttype = $productstype;
+		// Prevent value from being updated.
+		if ( empty( $this->getProductsType() ) ) {
+			$this->getOption()->set( 'producttype', $new_product_type )->save();
+		}
 	}
 
 	/**
-	 * Gets the productCount.
+	 * Gets the productType.
 	 *
-	 * @return string
+	 * @return mixed
 	 */
-	public function getProductcount() {
-		return ( $this->getOption()->productcount ) ? $this->getOption()->productcount : '';
+	public function getProductCount() {
+		return $this->getOption()->get( 'productcount', '' );
 	}
 
 	/**
-	 * Sets the productCount.
+	 * Sets the productCount, if not already set.
 	 *
-	 * @param string $productcount
+	 * @param string $new_product_count
 	 */
-	public function setProductcount( $productcount ) {
-		$productcount = filter_var( $productcount, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+	public function setProductcount( $new_product_count ) {
+		$new_product_count = filter_var( $new_product_count, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 
-		if ( ! $productcount || $productcount === $this->getProductcount() ) {
+		if ( ! isset( $new_product_count ) || empty( $new_product_count ) ) {
 			return;
 		}
 
-		$this->getOption()->productcount = $productcount;
+		// Prevent value from being updated.
+		if ( empty( $this->getProductCount() ) ) {
+			$this->getOption()->set( 'productcount', $new_product_count )->save();
+		}
+	}
+
+	/**
+	 * Sets the WooCommerce Country.
+	 *
+	 * Glues the region and state properties together.
+	 */
+	protected function saveRegionAndState() {
+		$base_region_state = implode( ':', array_filter( wc_get_base_location() ) );
+		$region_state      = $this->region;
+
+		// Region and State values should both be present.
+		// Check the property rather than the getter to avoid default value.
+		if ( ! empty( $region_state ) && ! empty( $this->state ) ) {
+			$region_state .= sprintf( ':%s', $this->state );
+		}
+
+		if ( empty( $region_state ) ) {
+			return;
+		}
+
+		if ( $base_region_state === $region_state ) {
+			return;
+		}
+
+		if ( ! update_option( 'woocommerce_default_country', $region_state ) ) {
+			$this->errors[] = [ 'region' => __( 'Unable to save Region', 'nexcess-mapps' ) ];
+		}
 	}
 
 	/**
@@ -412,6 +521,8 @@ class StoreBuilderFTC {
 	 * @return array success/error messages
 	 */
 	public function save() {
+		$this->saveRegionAndState();
+
 		if ( ! empty( $this->errors ) ) {
 			$this->setFtcComplete( false );
 			return [
@@ -422,9 +533,7 @@ class StoreBuilderFTC {
 
 		$this->setFtcComplete( true );
 
-		if ( $this->getOption()->isDirty() ) {
-			return [ 'success' => $this->getOption()->save() ];
-		}
+		do_action( 'wme_event_wizard_completed', 'ftc' );
 
 		return [ 'success' => true ];
 	}
@@ -448,7 +557,7 @@ class StoreBuilderFTC {
 	 * @param bool $complete Whether the step is complete or not.
 	 */
 	private function setFtcComplete( $complete = true ) {
-		$this->getOption()->ftc_complete = $complete;
+		$this->getOption()->set( 'ftc_complete', $complete )->save();
 	}
 
 	/**
@@ -473,29 +582,48 @@ class StoreBuilderFTC {
 		$wc      = WC();
 		if ( $wc->countries ) {
 			foreach ( $wc->countries->get_countries() as $country_key => $country_name ) {
-				$states = $wc->countries->get_states( $country_key );
-				if ( $states ) {
-					foreach ( $states as $state_key => $state_value ) {
-						$country_state_key = esc_attr( $country_key ) . ':' . esc_attr( $state_key );
-						$label             = esc_html( $country_name ) . ' — ' . esc_html( $state_value );
-						$regions[]         = [
-							'country' => $country_name,
-							'value'   => $country_state_key,
-							'label'   => $label,
-						];
-					}
-				} else {
-					$country_state_key = esc_attr( $country_key );
-					$label             = esc_html( $country_name );
-					$regions[]         = [
-						'country' => $country_name,
-						'value'   => $country_state_key,
-						'label'   => $label,
+				$country_state_key = esc_attr( $country_key );
+				$label             = esc_html( $country_name );
+				$regions[]         = [
+					'country' => $country_name,
+					'value'   => $country_state_key,
+					'label'   => $label,
+				];
+			}
+		}
+		return $regions;
+	}
+
+	/**
+	 * Returns the states for WooCommerce States dropdown.
+	 *
+	 * @return Array<mixed>
+	 */
+	public function getWoocommerceStates() {
+		$wc_states = [];
+		$wc        = WC();
+		if ( $this->region ) {
+			$states = $wc->countries->get_states( $this->region );
+			if ( $states ) {
+				foreach ( $states as $state_key => $state_value ) {
+					$wc_states[] = [
+						'value' => esc_attr( $state_key ),
+						'label' => esc_attr( $state_value ),
 					];
 				}
 			}
 		}
-		return $regions;
+		return $wc_states;
+	}
+
+	/**
+	 * Returns the locales for displaying appropriate 'State' dropdown label.
+	 *
+	 * @return Array<mixed>
+	 */
+	public function getWoocommerceLocales() {
+		$wc = WC();
+		return $wc->countries->get_country_locale();
 	}
 
 	/**

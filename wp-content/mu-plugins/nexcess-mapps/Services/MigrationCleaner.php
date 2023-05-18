@@ -11,7 +11,7 @@
 
 namespace Nexcess\MAPPS\Services;
 
-use Nexcess\MAPPS\Exceptions\FilesystemException;
+use StellarWP\PluginFramework\Exceptions\FilesystemException;
 use WP_Filesystem_Base;
 
 class MigrationCleaner {
@@ -42,7 +42,7 @@ class MigrationCleaner {
 	/**
 	 * Find and remove migration leftovers on the site.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If an error occurs.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If an error occurs.
 	 *
 	 * @return array[] {
 	 *
@@ -85,7 +85,7 @@ class MigrationCleaner {
 	 *
 	 * @param string[] $paths The files and/or directories to remove, relative to WP_CONTENT_DIR.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If any files are unable to be removed.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If any files are unable to be removed.
 	 *
 	 * @return string[] All system paths that have been removed.
 	 */
@@ -118,7 +118,7 @@ class MigrationCleaner {
 	/**
 	 * Scan the local filesystem for leftovers. No files will be removed.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If an error occurs.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If an error occurs.
 	 *
 	 * @return array[] An array of detected files, grouped by host.
 	 */
@@ -195,7 +195,7 @@ class MigrationCleaner {
 	 * @param string $path The path to remove.
 	 * @param string $type Optional. One of "d" ("Directory") or "f" ("File"). Default is empty.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If a file exists but cannot be deleted.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If a file exists but cannot be deleted.
 	 *
 	 * @return bool True if the file was deleted.
 	 */
@@ -256,10 +256,12 @@ class MigrationCleaner {
 			'DreamHost'      => [
 				'check' => [
 					'plugins/dreamobjects',
+					'plugins/dreamhost-panel-login',
 				],
 				'paths' => [
 					'plugins/dreamobjects',
 					'plugins/varnish-http-purge',
+					'plugins/dreamhost-panel-login',
 				],
 			],
 
@@ -299,6 +301,17 @@ class MigrationCleaner {
 				],
 			],
 
+			'HostGator'      => [
+				'check' => [
+					'mu-plugins/wp-plugin-hostgator/',
+					'mu-plugins/wp-plugin-hostgator.php',
+				],
+				'paths' => [
+					'mu-plugins/wp-plugin-hostgator/',
+					'mu-plugins/wp-plugin-hostgator.php',
+				],
+			],
+
 			'Kinsta'         => [
 				'check' => [
 					'mu-plugins/kinsta-mu-plugins.php',
@@ -314,6 +327,8 @@ class MigrationCleaner {
 					'mu-plugins/000-liquidweb-config.php',
 					'mu-plugins/liquid-web.php',
 					'mu-plugins/liquidweb_mwp.php',
+					'mu-plugins/lw_disable_nags.php',
+					'mu-plugins/lw-varnish-cache-purger.php',
 				],
 				'paths' => [
 					'mu-plugins/000-liquidweb-config.php',
@@ -442,6 +457,17 @@ class MigrationCleaner {
 					'mu-plugins/wpe-wp-sign-on-plugin.php',
 					'mu-plugins/wpengine-common/',
 					'mu-plugins/wpengine-security-auditor.php',
+				],
+			],
+
+			'WP Redis'       => [
+				'check' => [
+					'mu-plugins/wp-redis',
+					'mu-plugins/wp-redis.php',
+				],
+				'paths' => [
+					'mu-plugins/wp-redis',
+					'mu-plugins/wp-redis.php',
 				],
 			],
 		];

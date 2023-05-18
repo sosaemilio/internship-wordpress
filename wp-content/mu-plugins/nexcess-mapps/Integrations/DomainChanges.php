@@ -10,12 +10,10 @@ use Nexcess\MAPPS\Concerns\HasAdminPages;
 use Nexcess\MAPPS\Concerns\HasAssets;
 use Nexcess\MAPPS\Concerns\HasCronEvents;
 use Nexcess\MAPPS\Concerns\InvokesCli;
-use Nexcess\MAPPS\Concerns\MakesHttpRequests;
-use Nexcess\MAPPS\Concerns\QueriesMAPPS;
+use Nexcess\MAPPS\Services\Domain;
 use Nexcess\MAPPS\Settings;
-use Nexcess\MAPPS\Support\Branding;
-use Nexcess\MAPPS\Support\DNS;
 use Nexcess\MAPPS\Support\Helpers;
+use StellarWP\PluginFramework\Support\Branding;
 use WP_Error;
 
 class DomainChanges extends Integration {
@@ -23,18 +21,16 @@ class DomainChanges extends Integration {
 	use HasAssets;
 	use HasCronEvents;
 	use InvokesCli;
-	use MakesHttpRequests;
-	use QueriesMAPPS;
 
 	/**
-	 * @var \Nexcess\MAPPS\Support\DNS $dns
-	 */
-	protected $dns;
-
-	/**
-	 * @var \Nexcess\MAPPS\Settings $settings
+	 * @var Settings $settings
 	 */
 	protected $settings;
+
+	/**
+	 * @var Domain $domain_service
+	 */
+	protected $domain_service;
 
 	/**
 	 * The hook used for domain change cron events.
@@ -44,12 +40,12 @@ class DomainChanges extends Integration {
 	/**
 	 * Construct the integration.
 	 *
-	 * @param \Nexcess\MAPPS\Settings    $settings
-	 * @param \Nexcess\MAPPS\Support\DNS $dns
+	 * @param Settings $settings
+	 * @param Domain   $domain_service
 	 */
-	public function __construct( Settings $settings, DNS $dns ) {
-		$this->settings = $settings;
-		$this->dns      = $dns;
+	public function __construct( Settings $settings, Domain $domain_service ) {
+		$this->settings       = $settings;
+		$this->domain_service = $domain_service;
 	}
 
 	/**
@@ -60,12 +56,12 @@ class DomainChanges extends Integration {
 	protected function getActions() {
 		// phpcs:disable WordPress.Arrays
 		return [
-			[ 'load-options.php',            [ $this, 'handleSearchReplaceRequests' ] ],
-			[ 'load-index.php',              [ $this, 'enqueueScripts'              ] ],
-			[ 'load-options-general.php',    [ $this, 'enqueueScripts'              ] ],
-			[ 'load-site-health.php',        [ $this, 'enqueueScripts'              ] ],
-			[ 'wp_ajax_mapps-change-domain', [ $this, 'handleDomainChangeRequests'  ] ],
-			[ 'wp_dashboard_setup',          [ $this, 'registerDashboardWidget'     ] ],
+			[ 'load-options.php',                     [ $this, 'handleSearchReplaceRequests'      ] ],
+			[ 'load-index.php',                       [ $this, 'enqueueScripts'                   ] ],
+			[ 'load-options-general.php',             [ $this, 'enqueueScripts'                   ] ],
+			[ 'load-site-health.php',                 [ $this, 'enqueueScripts'                   ] ],
+
+			[ 'wp_ajax_mapps-change-domain',          [ $this, 'handleDomainChangeRequests'       ] ],
 
 			// Callback for the cron event.
 			[ self::DOMAIN_CHANGE_CRON_EVENT, [ $this, 'searchReplace' ], 10, 2 ],
@@ -95,6 +91,19 @@ class DomainChanges extends Integration {
 	}
 
 	/**
+	 * When processing the settings API, look for user opt-in to search/replace operations.
+	 *
+	 * If the "mapps-domain-search-replace" key is found in the $_POST body, apply the appropriate
+	 * callback to the update_option_home hook.
+	 */
+	public function handleSearchReplaceRequests() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( ! empty( $_POST['mapps-domain-search-replace'] ) ) {
+			add_action( 'update_option_home', [ $this, 'scheduleSearchReplace' ], 10, 2 );
+		}
+	}
+
+	/**
 	 * Form handler for changing the current site's domain.
 	 */
 	public function handleDomainChangeRequests() {
@@ -112,113 +121,36 @@ class DomainChanges extends Integration {
 			), 403 );
 		}
 
-		// Verify the domain structure and its DNS records.
+		// Verify the domain structure.
 		$domain = ! empty( $_POST['domain'] )
-			? Helpers::parseDomain( $_POST['domain'] )
+			? $this->domain_service->parseDomain( $_POST['domain'] )
 			: null;
 
-		/*
-		 * Validate the domain structure.
-		 *
-		 * Note that FILTER_VALIDATE_DOMAIN wasn't added until PHP 7.0, so we'll skip to the
-		 * (almost-certainly failing) DNS check.
-		 */
-		if ( version_compare( '7.0', $this->settings->php_version, '<=' ) && $domain ) {
-			// phpcs:ignore PHPCompatibility.Constants.NewConstants.filter_validate_domainFound
-			$domain = filter_var( idn_to_ascii( $domain, 0, INTL_IDNA_VARIANT_UTS46 ), FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME | FILTER_NULL_ON_FAILURE );
-		}
+		$domain = $this->domain_service->formatDomain( $domain );
 
 		if ( empty( $domain ) ) {
 			return wp_send_json_error( new WP_Error(
 				'mapps-invalid-domain',
 				sprintf(
-					/* Translators: %1$s is the provided domain name. */
+				/* Translators: %1$s is the provided domain name. */
 					__( '"%s" is not a valid domain name. Please check your spelling and try again.', 'nexcess-mapps' ),
 					sanitize_text_field( $_POST['domain'] )
 				)
 			), 422 );
 		}
 
-		if ( ( ! isset( $_POST['skipDnsVerification'] ) || ! $_POST['skipDnsVerification'] ) && ! $this->dnsRecordsExistForDomain( $domain ) ) {
-			return wp_send_json_error( new WP_Error(
-				'mapps-missing-dns',
-				sprintf(
-					/* Translators: %1$s is the provided domain name. */
-					__( 'Domain "%s" does not contain any DNS records for this site. Please add the appropriate records and try again.', 'nexcess-mapps' ),
-					$domain
-				)
-			), 422 );
-		}
-
-		// Finally, send the request to the MAPPS API.
-		$response = $this->mappsApi( 'v1/site/rename', [
-			'method' => 'POST',
-			'body'   => [
-				'domain' => $domain,
-			],
-		] );
+		$response = $this->domain_service->renameDomain( $domain );
 
 		if ( is_wp_error( $response ) ) {
 			return wp_send_json_error( new WP_Error(
 				'mapps-change-domain-failure',
-				sprintf(
-					/* Translators: %1$s is the branded company name, %2$s is the API error message. */
-					__( 'The %1$s API returned an error: %2$s', 'nexcess-mapps' ),
-					Branding::getCompanyName(),
-					$response->get_error_message()
-				)
+				$response->get_error_message()
 			) );
 		}
 
 		return wp_send_json_success( null, 202 );
 	}
 
-	/**
-	 * When processing the settings API, look for user opt-in to search/replace operations.
-	 *
-	 * If the "mapps-domain-search-replace" key is found in the $_POST body, apply the appropriate
-	 * callback to the update_option_home hook.
-	 */
-	public function handleSearchReplaceRequests() {
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing
-		if ( ! empty( $_POST['mapps-domain-search-replace'] ) ) {
-			add_action( 'update_option_home', [ $this, 'scheduleSearchReplace' ], 10, 2 );
-		}
-	}
-
-	/**
-	 * Register the "Go Live" (domain change) dashboard widget.
-	 */
-	public function registerDashboardWidget() {
-		// For now, only register the dashboard widget for WP QuickStart sites.
-		if ( ! ( $this->settings->is_quickstart || $this->settings->is_storebuilder ) ) {
-			return;
-		}
-
-		// Only register for production environments with temporary domains.
-		if ( ! $this->settings->is_production_site || ! $this->settings->is_temp_domain ) {
-			return;
-		}
-
-		// Only show for users that can change the domain.
-		if ( ! current_user_can( 'manage_options' ) || ! $this->canChangeDomain() ) {
-			return;
-		}
-
-		wp_add_dashboard_widget(
-			'mapps-change-domain',
-			_x( 'Go Live!', 'widget title', 'nexcess-mapps' ),
-			function () {
-				$this->renderTemplate( 'widgets/change-domain', [
-					'dns_help_url' => Branding::getDNSHelpUrl(),
-				] );
-			},
-			null,
-			null,
-			'normal',
-			'default'
-		);
-	}
 	/**
 	 * Schedule a cron event to run immediately that will perform a search-replace via WP-CLI.
 	 *
@@ -256,73 +188,5 @@ class DomainChanges extends Integration {
 		}
 
 		return $response;
-	}
-
-	/**
-	 * Determine whether or not the site is eligible to change its domain without going through
-	 * the Nexcess portal.
-	 *
-	 * @return bool True if the domain may be changed, false otherwise.
-	 */
-	protected function canChangeDomain() {
-		$can_change_domain = remember_site_transient( 'nexcess-mapps-can-change-domain', function () {
-			$response = $this->mappsApi( 'v1/site', [
-				'method' => 'GET',
-			] );
-
-			try {
-				$body = json_decode( $this->validateHttpResponse( $response ) );
-
-				return (bool) $body->can_modify_domain;
-			} catch ( \Exception $e ) {
-				/*
-				 * If we can't get an answer, something may be wrong with the API.
-				 *
-				 * In that case, it's best to assume the site can't change its domain without going
-				 * through the portal (at least for now).
-				 */
-				return false;
-			}
-		}, HOUR_IN_SECONDS );
-
-		return apply_filters( 'Nexcess\MAPPS\DomainChanges\CanChangeDomain', $can_change_domain );
-	}
-
-	/**
-	 * Determine whether or not there are DNS records for the given domain that reference this site.
-	 *
-	 * @param string $domain The domain to check.
-	 *
-	 * @return bool True if there are DNS records for $domain that point to this site, false otherwise.
-	 */
-	protected function dnsRecordsExistForDomain( $domain ) {
-		$records = $this->dns->getRecords( $domain, DNS_A | DNS_CNAME );
-		$ip_addr = $this->dns->getIpByHost( $this->settings->temp_domain );
-
-		foreach ( $records as $record ) {
-			if ( empty( $record['type'] ) ) {
-				continue;
-			}
-
-			// A record pointing to this server.
-			if (
-				'A' === $record['type']
-				&& ! empty( $record['ip'] )
-				&& $ip_addr === $record['ip']
-			) {
-				return true;
-			}
-
-			// CNAME record.
-			if (
-				'CNAME' === $record['type']
-				&& ! empty( $record['target'] )
-				&& $this->settings->temp_domain === $record['target']
-			) {
-				return true;
-			}
-		}
-
-		return false;
 	}
 }

@@ -92,6 +92,8 @@ class VisualComparison extends Command {
 	 * @return string[] An array of URLs
 	 */
 	protected function filterUrls( $urls, $response_code = 200 ) {
+		$urls = $this->integration->resolveTrailingSlashes( $urls );
+
 		return array_filter( $urls, function( $url ) use ( $response_code ) {
 			$response = wp_remote_head( site_url( $url ), [
 				'redirection' => 0,

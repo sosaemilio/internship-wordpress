@@ -6,14 +6,56 @@
 
 namespace Nexcess\MAPPS\Integrations;
 
-use Nexcess\MAPPS\Concerns\HasHooks;
+use Nexcess\MAPPS\Concerns\HasCronEvents;
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
+use Nexcess\MAPPS\Services\Installer;
+use Nexcess\MAPPS\Services\Logger;
+use Nexcess\MAPPS\Settings;
 use Nexcess\MAPPS\Support\Deprecation;
+use StellarWP\PluginFramework\Exceptions\InstallationException;
+use StellarWP\PluginFramework\Exceptions\LicensingException;
+use StellarWP\PluginFramework\Services\FeatureFlags;
 use WP_Error;
 
 class PluginInstaller extends Integration {
-	use HasHooks;
+	use HasCronEvents;
 	use HasWordPressDependencies;
+
+	/**
+	 * The daily cron action name.
+	 */
+	const DAILY_OCP_PLUGIN_MIGRATION_CRON_ACTION = 'nexcess_mapps_daily_ocp_plugin_migration';
+
+	/**
+	 * Action name used to prevent the check from running multiple times in one request.
+	 */
+	const MIGRATE_REDIS_TO_OCP_ACTION = 'Nexcess\\MAPPS\\Integrations\\PluginInstaller\\MigrateRedisCacheToOCP';
+
+	/**
+	 * @var \StellarWP\PluginFramework\Services\FeatureFlags
+	 */
+	protected $featureFlags;
+
+	/**
+	 * @var \Nexcess\MAPPS\Services\Logger
+	 */
+	protected $logger;
+
+	/**
+	 * @var \Nexcess\MAPPS\Settings
+	 */
+	protected $settings;
+
+	/**
+	 * @param \Nexcess\MAPPS\Settings                          $settings
+	 * @param \Nexcess\MAPPS\Services\Logger                   $logger
+	 * @param \StellarWP\PluginFramework\Services\FeatureFlags $feature_flags
+	 */
+	public function __construct( Settings $settings, Logger $logger, FeatureFlags $feature_flags ) {
+		$this->settings     = $settings;
+		$this->logger       = $logger;
+		$this->featureFlags = $feature_flags;
+	}
 
 	/**
 	 * Determine whether or not this integration should be loaded.
@@ -38,6 +80,11 @@ class PluginInstaller extends Integration {
 
 		// Load the version bundled with this plugin.
 		$this->loadPlugin( 'liquidweb/nexcess-mapps-dashboard/nexcess-mapps-dashboard.php' );
+
+		// Register cron events.
+		if ( $this->featureFlags->enabled( 'migrate-redis-cache-to-ocp' ) ) {
+			$this->registerCronEvent( self::DAILY_OCP_PLUGIN_MIGRATION_CRON_ACTION, 'daily' );
+		}
 	}
 
 	/**
@@ -48,7 +95,81 @@ class PluginInstaller extends Integration {
 	public function getActions() {
 		return [
 			[ 'upgrader_source_selection', [ $this, 'blockInstall' ] ],
+
+			/*
+			 * Daily operations:
+			 *
+			 * - Check if Redis Cache (free) is being used, and replace with Object Cache Pro
+			 */
+			[ self::DAILY_OCP_PLUGIN_MIGRATION_CRON_ACTION, [ $this, 'migrateToOCP' ] ],
 		];
+	}
+
+	/**
+	 * Checks to see if the site is running Redis Cache with a managed drop-in.
+	 * If so, replace Redis Cache with Object Cache Pro.
+	 */
+	public function migrateToOCP() {
+
+		// Make sure that we don't run this action multiple times in one request.
+		if ( did_action( self::MIGRATE_REDIS_TO_OCP_ACTION ) ) {
+			return;
+		}
+
+		// Fire the action to avoid a loop.
+		do_action( self::MIGRATE_REDIS_TO_OCP_ACTION );
+
+		// Bail if Redis Cache isn't installed.
+		if ( ! $this->isPluginActive( 'redis-cache/redis-cache.php' ) ) {
+			return;
+		}
+
+		// If we've already migrated to OCP, no need to check it and do it again.
+		if ( ! empty( get_option( 'nexcess_did_migrate_redis_to_ocp' ) ) ) {
+			return;
+		}
+
+		// Bail if the drop-in does not exist.
+		if ( ! file_exists( WP_CONTENT_DIR . '/object-cache.php' ) ) {
+			return;
+		}
+
+		// Remove Redis Cache.
+		$this->deactivatePlugin( 'redis-cache/redis-cache.php' );
+
+		// Install and activate OCP.
+		$installer     = new Installer( $this->settings, $this->logger );
+		$ocp_plugin_id = $this->settings->is_qa_environment ? 80 : 125;
+
+		try {
+			$installer->install( $ocp_plugin_id );
+		} catch ( InstallationException $e ) {
+			$this->logger->info( sprintf(
+				/* Translators: %1$s is the previous exception message. */
+				__( 'Unable to install Object Cache Pro: %1$s', 'nexcess-mapps' ),
+				$e->getMessage()
+			) );
+			return;
+		}
+
+		try {
+			$installer->license( $ocp_plugin_id );
+		} catch ( LicensingException $e ) {
+			$this->logger->info( sprintf(
+				/* Translators: %1$s is the previous exception message. */
+				__( 'Unable to license Object Cache Pro: %1$s', 'nexcess-mapps' ),
+				$e->getMessage()
+			) );
+			return;
+		}
+
+		// Prevent this from happening again.
+		update_option( 'nexcess_did_migrate_redis_to_ocp', true );
+
+		$timestamp = wp_next_scheduled( self::DAILY_OCP_PLUGIN_MIGRATION_CRON_ACTION );
+		if ( $timestamp ) {
+			wp_unschedule_event( $timestamp, self::DAILY_OCP_PLUGIN_MIGRATION_CRON_ACTION );
+		}
 	}
 
 	/**

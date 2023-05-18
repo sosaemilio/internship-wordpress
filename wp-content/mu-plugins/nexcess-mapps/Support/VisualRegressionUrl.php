@@ -2,7 +2,7 @@
 
 namespace Nexcess\MAPPS\Support;
 
-use Nexcess\MAPPS\Exceptions\InvalidUrlException;
+use StellarWP\PluginFramework\Exceptions\InvalidUrlException;
 
 class VisualRegressionUrl implements \JsonSerializable {
 
@@ -33,7 +33,7 @@ class VisualRegressionUrl implements \JsonSerializable {
 	 * @param string $path        The site path to be inspected.
 	 * @param string $description Optional. A description of the URL. Default is empty.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InvalidUrlException When the path cannot be parsed.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InvalidUrlException When the path cannot be parsed.
 	 */
 	public function __construct( $path, $description = '' ) {
 		$this->path        = self::normalizeUrl( $path );
@@ -123,7 +123,7 @@ class VisualRegressionUrl implements \JsonSerializable {
 	 *
 	 * @param mixed $url The URL to normalize.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InvalidUrlException When the path cannot be parsed.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InvalidUrlException When the path cannot be parsed.
 	 *
 	 * @return string The normalized path + query string.
 	 */

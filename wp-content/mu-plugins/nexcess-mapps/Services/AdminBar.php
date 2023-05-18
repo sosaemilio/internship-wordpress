@@ -3,7 +3,7 @@
 namespace Nexcess\MAPPS\Services;
 
 use Nexcess\MAPPS\Support\AdminNotice;
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 use WP_Admin_Bar;
 
 use const Nexcess\MAPPS\PLUGIN_URL;

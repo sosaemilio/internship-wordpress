@@ -2,9 +2,11 @@
 
 namespace Nexcess\MAPPS\Commands;
 
-use Nexcess\MAPPS\Exceptions\InstallationException;
-use Nexcess\MAPPS\Exceptions\LicensingException;
 use Nexcess\MAPPS\Services\Installer as InstallerService;
+use StellarWP\PluginFramework\Exceptions\InstallationException;
+use StellarWP\PluginFramework\Exceptions\LicensingException;
+
+use function WP_CLI\Utils\format_items;
 
 /**
  * WP-CLI commands for the Nexcess Installer.
@@ -89,5 +91,43 @@ class Installer extends Command {
 		}
 
 		$this->success( 'Plugins installed successfully!' );
+	}
+
+	/**
+	 * Show a list of all plugins available via the NX Installer.
+	 *
+	 * @subcommand list
+	 * Since 'list' is a reserved word, using subcommand to get the command we want to use instead of the function name.
+	 */
+	public function pluginList() {
+		$plugin_objects        = $this->installer->getAvailablePlugins();
+		$plugin_objects_encode = wp_json_encode( $plugin_objects );
+
+		if ( $plugin_objects_encode ) {
+			$plugins = json_decode( $plugin_objects_encode, true );
+			// Mapping the array to eliminate the need for a for loop. Filtering out the empty arrays with array_filter.
+			$mapped = array_filter( array_map( [ $this, 'createPluginArray' ], $plugins ) );
+
+			format_items( 'table', $mapped, [ 'id', 'name' ] );
+		}
+	}
+
+	/**
+	 * Parse array of data available for each plugin that can be installed with the NX Installer and return for
+	 * formatting into a table in pluginList().
+	 *
+	 * @param array[] $plugin Plugin's array of information to be displayed.
+	 *
+	 * @return array
+	 */
+	public function createPluginArray( array $plugin ) {
+		if ( ! isset( $plugin['id'], $plugin['identity'] ) ) {
+			return [];
+		}
+
+		return [
+			'id'   => $plugin['id'],
+			'name' => $plugin['identity'],
+		];
 	}
 }

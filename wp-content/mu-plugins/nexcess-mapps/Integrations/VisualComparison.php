@@ -63,7 +63,7 @@ class VisualComparison extends Integration {
 		return [
 			// phpcs:disable WordPress.Arrays
 			[ 'admin_init', [ $this, 'registerDashboardSection' ], 100 ], // 100 = first functionality tab.
-			[ 'admin_init', [ $this, 'registerSetting' ]              ],
+			[ 'admin_init', [ $this, 'registerSetting' ] ],
 			// phpcs:enable WordPress.Arrays
 		];
 	}
@@ -118,7 +118,10 @@ class VisualComparison extends Integration {
 			_x( 'Priority Pages', 'settings section', 'nexcess-mapps' ),
 			function () {
 				// Prepare the React component.
-				$this->enqueueScript( 'nexcess-mapps-visual-comparison', 'visual-comparison.js', [ 'nexcess-mapps-admin', 'wp-element' ] );
+				$this->enqueueScript( 'nexcess-mapps-visual-comparison', 'visual-comparison.js', [
+					'nexcess-mapps-admin',
+					'wp-element',
+				] );
 
 				$this->injectScriptData( 'nexcess-mapps-visual-comparison', 'visualComparison', [
 					'baseUrl' => Helpers::truncate( mb_substr( site_url( '', 'https' ), 8 ), 15, 6 ),
@@ -170,7 +173,7 @@ class VisualComparison extends Integration {
 				$i = 2;
 
 				while ( in_array( $description . " ($i)", $descriptions, true ) ) {
-					$i++;
+					$i ++;
 				}
 
 				$description .= " ($i)";
@@ -198,7 +201,7 @@ class VisualComparison extends Integration {
 		// Apply limits to the number of URLs.
 		if ( count( $urls ) > self::MAXIMUM_URLS ) {
 			$message = sprintf(
-				/* Translators: %1$d is the maximum number of URLs permitted. */
+			/* Translators: %1$d is the maximum number of URLs permitted. */
 				__( 'In order to provide timely feedback, visual comparison runs are limited to %1$d URLs.', 'nexcess-mapps' ),
 				self::MAXIMUM_URLS
 			);
@@ -248,6 +251,42 @@ class VisualComparison extends Integration {
 	}
 
 	/**
+	 * Resolves path trailing slashes based on permalink_structure option for url array.
+	 *
+	 * @param string[] $urls
+	 *
+	 * @return string[]
+	 */
+	public function resolveTrailingSlashes( $urls ) {
+		$link_structure = get_option( 'permalink_structure' ) ?: '';
+		if ( ! $urls || ! $link_structure ) {
+			return $urls;
+		}
+
+		$ends_with_slash = '/' === substr( $link_structure, -1 );
+
+		$resolved = [];
+		foreach ( $urls as $url ) {
+			$query = '';
+			if ( false !== strpos( $url, '?' ) ) {
+				$parsed_url = wp_parse_url( $url );
+				$url        = ! empty( $parsed_url['path'] ) ? $parsed_url['path'] : $url;
+				$query      = ! empty( $parsed_url['query'] ) ? $parsed_url['query'] : $query;
+			}
+
+			$url = untrailingslashit( $url );
+
+			if ( ! $url || $ends_with_slash ) {
+				$url .= '/';
+			}
+
+			$resolved[] = $url . ( $query ? '?' . $query : '' );
+		}
+
+		return $resolved;
+	}
+
+	/**
 	 * Get the default URLs to check during visual comparison.
 	 *
 	 * @return VisualRegressionUrl[]
@@ -286,9 +325,9 @@ class VisualComparison extends Integration {
 	/**
 	 * Get that represent various post types.
 	 *
-	 * @global $wpdb
-	 *
 	 * @return \Nexcess\MAPPS\Support\VisualRegressionUrl[]
+	 *
+	 * @global $wpdb
 	 */
 	protected function getDefaultPostUrls() {
 		global $wpdb;
@@ -320,9 +359,9 @@ class VisualComparison extends Integration {
 	/**
 	 * Select URLs to represent taxonomy terms.
 	 *
-	 * @global $wpdb
-	 *
 	 * @return \Nexcess\MAPPS\Support\VisualRegressionUrl[]
+	 *
+	 * @global $wpdb
 	 */
 	protected function getDefaultTaxonomyUrls() {
 		global $wpdb;

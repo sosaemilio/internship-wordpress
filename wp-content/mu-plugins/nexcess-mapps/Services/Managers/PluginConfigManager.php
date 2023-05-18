@@ -7,9 +7,9 @@
 namespace Nexcess\MAPPS\Services\Managers;
 
 use Nexcess\MAPPS\Container;
-use Nexcess\MAPPS\Exceptions\InvalidPluginException;
 use Nexcess\MAPPS\Plugins;
 use Nexcess\MAPPS\Plugins\Plugin;
+use StellarWP\PluginFramework\Exceptions\InvalidPluginException;
 
 class PluginConfigManager {
 
@@ -29,8 +29,10 @@ class PluginConfigManager {
 	 * @var Array<string,string>
 	 */
 	protected $plugins = [
-		'redis-cache/redis-cache.php' => Plugins\RedisCache::class,
-		'wp-redis/wp-redis.php'       => Plugins\WPRedis::class,
+		'object-cache-pro/object-cache-pro.php' => Plugins\ObjectCachePro::class,
+		'object-cache-pro/redis-cache-pro.php'  => Plugins\ObjectCachePro::class,
+		'redis-cache/redis-cache.php'           => Plugins\RedisCache::class,
+		'wp-redis/wp-redis.php'                 => Plugins\WPRedis::class,
 	];
 
 	/**
@@ -63,7 +65,7 @@ class PluginConfigManager {
 	 *
 	 * @param string $plugin The plugin basename.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InvalidPluginException If the plugin is not registered.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InvalidPluginException If the plugin is not registered.
 	 *
 	 * @return Plugin
 	 */
@@ -72,12 +74,12 @@ class PluginConfigManager {
 			return $this->resolved[ $plugin ];
 		}
 
-		if ( ! isset( $this->plugins[ $plugin ] ) ) {
+		if ( ! isset( $this->plugins[ $this->getShortPluginPath( $plugin ) ] ) ) {
 			throw new InvalidPluginException( sprintf( 'No plugin configuration exists for %s.', $plugin ) );
 		}
 
-		$this->resolved[ $plugin ] = $this->container->get( $this->plugins[ $plugin ] )
-			->setPluginDir( $this->getPluginPath( $plugin ) );
+		$this->resolved[ $plugin ] = $this->container->get( $this->plugins[ $this->getShortPluginPath( $plugin ) ] )
+			->setPluginDir( $this->getRealPluginPath( $plugin ) );
 
 		return $this->resolved[ $plugin ];
 	}
@@ -94,7 +96,7 @@ class PluginConfigManager {
 			return false;
 		}
 
-		return isset( $this->plugins[ (string) $plugin ] );
+		return isset( $this->plugins[ $this->getShortPluginPath( $plugin ) ] );
 	}
 
 	/**
@@ -105,7 +107,7 @@ class PluginConfigManager {
 	 *
 	 * @param string $plugin The plugin basename.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InvalidPluginException If the plugin is not registered.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InvalidPluginException If the plugin is not registered.
 	 *
 	 * @return Plugin
 	 */
@@ -115,7 +117,7 @@ class PluginConfigManager {
 		}
 
 		return $this->container->make( $this->plugins[ $plugin ] )
-			->setPluginDir( $this->getPluginPath( $plugin ) );
+			->setPluginDir( $this->getRealPluginPath( $plugin ) );
 	}
 
 	/**
@@ -143,7 +145,7 @@ class PluginConfigManager {
 	 *
 	 * @return string The system path to that plugin directory, without a trailing slash.
 	 */
-	protected function getPluginPath( $plugin ) {
+	protected function getRealPluginPath( $plugin ) {
 		$dir = dirname( $plugin );
 
 		if ( '.' === $dir ) {
@@ -151,5 +153,31 @@ class PluginConfigManager {
 		}
 
 		return untrailingslashit( WP_PLUGIN_DIR . '/' . $dir );
+	}
+
+	/**
+	 * Get the short path to the given $plugin.
+	 *
+	 * @param string $plugin The plugin string to parse.
+	 *
+	 * @return int|string The short path or exits if conditions aren't met.
+	 */
+	protected function getShortPluginPath( $plugin ) {
+		$position     = strpos( $plugin, 'plugins' );
+		$folder_check = substr( $plugin, $position + 8 );
+		$is_file_only = strpos( $folder_check, '/' );
+
+		// Check if plugin is empty, a symlink, or if the plugin in question is only a file
+		// and not a folder (eg: plugin.php instead of plugin/plugin.php).
+		if ( empty( $plugin ) || is_link( $plugin ) || false === $is_file_only ) {
+			// Bails out of Plugin Config Manager if conditions not met.
+			return 0;
+		}
+
+		// Check if the path provided is already a short path.
+		if ( ( basename( dirname( $plugin ) ) . '/' . basename( $plugin ) ) === $plugin ) {
+			return $plugin;
+		}
+		return basename( dirname( $plugin ) ) . '/' . basename( $plugin );
 	}
 }

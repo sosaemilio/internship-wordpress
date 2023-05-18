@@ -5,26 +5,32 @@
 
 namespace Nexcess\MAPPS\Integrations;
 
+use Nexcess\MAPPS\Concerns\CollectsTelemetryData;
 use Nexcess\MAPPS\Concerns\HasAdminPages;
 use Nexcess\MAPPS\Concerns\HasAssets;
 use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
 use Nexcess\MAPPS\Concerns\MakesHttpRequests;
-use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
 use Nexcess\MAPPS\Concerns\QueriesWooCommerce;
-use Nexcess\MAPPS\Exceptions\ContentOverwriteException;
-use Nexcess\MAPPS\Services\AdminBar;
-use Nexcess\MAPPS\Services\Importers\AttachmentImporter;
+use Nexcess\MAPPS\Modules\Telemetry;
 use Nexcess\MAPPS\Services\Importers\WooCommerceProductImporter;
-use Nexcess\MAPPS\Services\Options;
 use Nexcess\MAPPS\Settings;
 use Nexcess\MAPPS\Support\Helpers;
 
+use StellarWP\PluginFramework\Exceptions\ContentOverwriteException;
+use Tribe\WME\Sitebuilder\Container as SitebuilderContainer;
+use Tribe\WME\Sitebuilder\Contracts\ManagesDomain;
+use Tribe\WME\Sitebuilder\Modules\StoreDetails;
+use Tribe\WME\Sitebuilder\Wizards\FirstTimeConfiguration;
+use Tribe\WME\Sitebuilder\Wizards\LookAndFeel;
+use Tribe\WME\Sitebuilder\Wizards\StoreSetup;
+
 use const Nexcess\MAPPS\PLUGIN_DIR;
+use const Nexcess\MAPPS\PLUGIN_URL;
 use const Nexcess\MAPPS\PLUGIN_VERSION;
 
 class StoreBuilder extends Integration {
-	use ManagesGroupedOptions;
+	use CollectsTelemetryData;
 	use HasAdminPages;
 	use HasAssets;
 	use HasHooks;
@@ -33,34 +39,24 @@ class StoreBuilder extends Integration {
 	use QueriesWooCommerce;
 
 	/**
-	 * @var mixed[]
-	 */
-	protected $contentPlaceholders = [];
-
-	/**
-	 * @var \Nexcess\MAPPS\Services\AdminBar
-	 */
-	protected $adminBar;
-
-	/**
-	 * @var \Nexcess\MAPPS\Services\Importers\AttachmentImporter
-	 */
-	protected $attachmentImporter;
-
-	/**
-	 * @var \Nexcess\MAPPS\Services\Importers\WooCommerceProductImporter
+	 * @var WooCommerceProductImporter
 	 */
 	protected $productImporter;
 
 	/**
-	 * @var \Nexcess\MAPPS\Settings
+	 * @var Settings
 	 */
 	protected $settings;
 
 	/**
-	 * @var \Nexcess\MAPPS\Services\Options
+	 * @var ManagesDomain
 	 */
-	protected $options;
+	private $domain_service;
+
+	/**
+	 * @var array[]
+	 */
+	protected $admin_pointers = [];
 
 	/**
 	 * The option that gets set once we've already ingested once.
@@ -68,34 +64,41 @@ class StoreBuilder extends Integration {
 	const INGESTION_LOCK_OPTION_NAME = '_storebuilder_created_on';
 
 	/**
-	 * The post meta key that gets set on generated content.
+	 * The option name used for the Telemetry Data Store for wizard start and completion times.
 	 */
-	const GENERATED_AT_POST_META_KEY = '_storebuilder_generated_at';
+	const TELEMETRY_DATA_STORE_NAME = 'nexcess_mapps_storebuilder_telemetry';
 
 	/**
-	 * The grouped setting option name.
+	 * The version of StoreBuilder for the current site. Used to determine if data migrations or other actions
+	 * should be taken when the version changes.
 	 */
-	const OPTION_NAME = '_nexcess_quickstart';
+	const CURRENT_STOREBUILDER_VERSION = 'nexcess_mapps_storebuilder_version';
 
 	/**
-	 * @param \Nexcess\MAPPS\Settings                                      $settings
-	 * @param \Nexcess\MAPPS\Services\Importers\AttachmentImporter         $attachment_importer
-	 * @param \Nexcess\MAPPS\Services\Importers\WooCommerceProductImporter $product_importer
-	 * @param \Nexcess\MAPPS\Services\AdminBar                             $admin_bar
-	 * @param \Nexcess\MAPPS\Services\Options                              $options
+	 * The version of StoreBuilder when the site was created.
+	 */
+	const INITIAL_STOREBUILDER_VERSION = 'nexcess_mapps_storebuilder_initial_version';
+
+	/**
+	 * The latest version of StoreBuilder defined using the Semantic Version format.
+	 *
+	 * @link https://semver.org/
+	 */
+	const VERSION = '4.1';
+
+	/**
+	 * @param Settings                   $settings
+	 * @param WooCommerceProductImporter $product_importer
+	 * @param ManagesDomain              $domain_service
 	 */
 	public function __construct(
 		Settings $settings,
-		AttachmentImporter $attachment_importer,
 		WooCommerceProductImporter $product_importer,
-		AdminBar $admin_bar,
-		Options $options
+		ManagesDomain $domain_service
 	) {
-		$this->settings           = $settings;
-		$this->attachmentImporter = $attachment_importer;
-		$this->productImporter    = $product_importer;
-		$this->adminBar           = $admin_bar;
-		$this->options            = $options;
+		$this->settings        = $settings;
+		$this->productImporter = $product_importer;
+		$this->domain_service  = $domain_service;
 	}
 
 	/**
@@ -104,7 +107,9 @@ class StoreBuilder extends Integration {
 	 * @return bool Whether or not this integration be loaded in this environment.
 	 */
 	public function shouldLoadIntegration() {
-		return ( $this->settings->is_storebuilder || get_option( self::INGESTION_LOCK_OPTION_NAME, false ) ) && $this->isPluginActive( 'woocommerce/woocommerce.php' );
+		return ( $this->settings->is_storebuilder || get_option( self::INGESTION_LOCK_OPTION_NAME, false ) )
+		&& $this->isPluginActive( 'woocommerce/woocommerce.php' )
+		&& ( ! defined( 'NEXCESS_MAPPS_DISABLE_STOREBUILDER' ) || ! NEXCESS_MAPPS_DISABLE_STOREBUILDER );
 	}
 
 	/**
@@ -114,8 +119,37 @@ class StoreBuilder extends Integration {
 	 * entry-point for all integrations.
 	 */
 	public function setup() {
+		$this->admin_pointers = [
+			'toplevel_page_sitebuilder'               => [
+				'slug'       => 'storebuilder-setup-store-pointer',
+				'action'     => 'dismiss-storebuilder-setup-store-pointer',
+				'target'     => 'toplevel_page_sitebuilder-store-details',
+				'header'     => __( 'Get the most out of your store', 'nexcess-mapps' ),
+				'text'       => __( 'Now that you’ve set up your site, move on to setting up your store.', 'nexcess-mapps' ),
+				'conditions' => [
+					SitebuilderContainer::getInstance()->get( FirstTimeConfiguration::class )->isComplete(),
+					SitebuilderContainer::getInstance()->get( LookAndFeel::class )->isComplete(),
+					! SitebuilderContainer::getInstance()->get( StoreSetup::class )->isComplete(),
+				],
+			],
+			'toplevel_page_sitebuilder-store-details' => [
+				'slug'       => 'storebuilder-site-setup-pointer',
+				'action'     => 'dismiss-storebuilder-site-setup-pointer',
+				'target'     => 'toplevel_page_sitebuilder',
+				'header'     => __( 'Make a change?', 'nexcess-mapps' ),
+				'text'       => esc_html__( 'Need to adjust how your store looks, or set up a domain? Go back to site setup.', 'nexcess-mapps' ),
+				'conditions' => [
+					SitebuilderContainer::getInstance()->get( StoreSetup::class )->isComplete(),
+				],
+			],
+		];
+
 		$this->addHooks();
 		$this->removeDefaultHooks();
+
+		SitebuilderContainer::getInstance()->extend( ManagesDomain::class, $this->domain_service );
+
+		$this->loadPlugin( 'moderntribe/wme-sitebuilder/wme-sitebuilder.php' );
 	}
 
 	/**
@@ -126,11 +160,18 @@ class StoreBuilder extends Integration {
 	protected function getActions() {
 		// phpcs:disable WordPress.Arrays
 		return [
-			[ 'admin_enqueue_scripts', [ $this, 'enqueueScripts'                ] ],
-			[ 'admin_menu',            [ $this, 'removeMenuPages'               ], 999 ],
-			[ 'admin_notices',         [ $this, 'renderWelcomePanel'            ], 100 ],
-			[ 'wp_dashboard_setup',    [ $this, 'registerWidgets'               ] ],
-			[ 'plugins_loaded',        [ $this, 'filterSpotlightUpsells'        ] ],
+			[ 'init',                       [ $this, 'maybeUpgradeStoreBuilder'   ], 999 ],
+			[ 'admin_init',                 [ $this, 'registerAdminColorScheme'   ] ],
+			[ 'admin_init',                 [ $this, 'dismissPointer' ] ],
+			[ 'in_admin_header',            [ $this, 'loadPointerScripts' ] ],
+			[ 'user_register',              [ $this, 'setDefaultAdminColorScheme' ] ],
+			[ 'admin_menu',                 [ $this, 'removeMenuPages'            ], 999 ],
+			[ 'admin_notices',              [ $this, 'renderWelcomePanel'         ], 100 ],
+			[ 'wp_dashboard_setup',         [ $this, 'registerWidgets'            ] ],
+			[ 'plugins_loaded',             [ $this, 'filterSpotlightUpsells'     ] ],
+			[ 'wme_event_wizard_started',   [ $this, 'captureWizardStarted'       ] ],
+			[ 'wme_event_wizard_completed', [ $this, 'captureWizardCompleted'     ] ],
+			[ 'wme_event_wizard_telemetry', [ $this, 'captureWizardEvents'        ], 10, 3 ],
 		];
 		// phpcs:enable WordPress.Arrays
 	}
@@ -143,8 +184,13 @@ class StoreBuilder extends Integration {
 	protected function getFilters() {
 		// phpcs:disable WordPress.Arrays
 		$filters = [
-			// Kadence configuration.
+			// Telemetry Report Data Collection.
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'collectStoreBuilderSetupData' ] ],
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'collectWooCommerceSetupData' ] ],
+
+			// Filter Kadence configuration and the kadence license.
 			[ 'kadence_theme_options_defaults', [ $this, 'setKadenceDefaults' ] ],
+			[ 'pre_option_kt_api_manager_kadence_gutenberg_pro_data', [ $this, 'filterKadenceLicense' ] ],
 
 			// Filters for metaboxes.
 			[ 'postbox_classes_dashboard_mapps-storebuilder-support', [ $this, 'filterMetaboxClasses' ] ],
@@ -153,17 +199,17 @@ class StoreBuilder extends Integration {
 
 			// Set up the simple admin menu.
 			[ 'pre_option__nexcess_simple_admin_menu', [ $this, 'setUpSimpleAdminMenu' ] ],
+			[ 'Nexcess\MAPPS\SimpleAdminMenu\ShowWelcomeNotice', '__return_false' ],
 
 			// Filter the admin bar environment colors.
 			[ 'where_env_styles', [ $this, 'filterEnvironmentColors' ] ],
 
-			// Add the launch content to the Go Live widget.
-			[ 'Nexcess\MAPPS\DomainChange\After',  [ $this, 'renderLaunchContentAfter' ] ],
+			// Sitebuilder Configuration.
+			[ 'wme_sitebuilder_image_asset_path', [ $this, 'filterSitebuilderImageAssetPath' ] ],
+			[ 'wme_sitebuilder_autolaunch_wizard', [ $this, 'filterAutoLaunchWizard' ] ],
+			[ 'wme_sitebuilder_next_url', [ $this, 'filterSitebuilderNextUrl' ], 10, 3 ],
+			[ 'wme_sitebuilder_golive_purchase_url', [ $this, 'filterSitebuilderPurchaseUrl' ] ],
 
-			[ 'Nexcess\MAPPS\SimpleAdminMenu\ShowWelcomeNotice', '__return_false' ],
-
-			// Filter the kadence license.
-			[ 'pre_option_kt_api_manager_kadence_gutenberg_pro_data', [ $this, 'filterKadenceLicense' ] ],
 		];
 		// phpcs:enable WordPress.Arrays
 
@@ -217,34 +263,6 @@ class StoreBuilder extends Integration {
 		}
 
 		return $filters;
-	}
-
-	/**
-	 * Enqueue scripts.
-	 */
-	public function enqueueScripts() {
-		$this->enqueueScript( 'nexcess-mapps-storebuilder', 'storebuilder.js' );
-	}
-
-	/**
-	 * Add inline styles.
-	 */
-	public function addInlineStyles() {
-		wp_add_inline_style(
-			'nexcess-mapps-storebuilder',
-			'.woocommerce-stats-overview__install-jetpack-promo {
-				display: none !important;
-				visibility: hidden !important;
-			}
-
-			.wp-submenu .fs-submenu-item.pricing.upgrade-mode {
-				color: unset;
-			}
-
-			body.appearance_page_kadence .license-section {
-				display: none;
-			}'
-		);
 	}
 
 	/**
@@ -329,7 +347,6 @@ class StoreBuilder extends Integration {
 
 		return [
 			'normal'  => 'mapps-storebuilder-advanced-steps,mapps-storebuilder-support',
-			'side'    => 'mapps-change-domain',
 			'column3' => 'woocommerce_dashboard_status',
 		];
 	}
@@ -352,6 +369,63 @@ class StoreBuilder extends Integration {
 		$sliFreemius->add_filter( 'show_deactivation_feedback_form', '__return_false' );
 		$sliFreemius->add_filter( 'show_trial', '__return_false' );
 		// phpcs:enable WordPress.NamingConventions.ValidVariableName
+	}
+
+	/**
+	 * Determine if the criteria are met to AutoLaunch the wizard.
+	 *
+	 * @param bool $auto_launch
+	 *
+	 * @return bool
+	 */
+	public function filterAutoLaunchWizard( $auto_launch ) {
+		// Only launch the First Time Configuration Wizard if this store doesn't have any orders.
+		return ! $this->storeHasOrders();
+	}
+
+	/**
+	 * Process and return the asset path for Sitebuilder/Store Details Images.
+	 *
+	 * @param string $asset_path
+	 *
+	 * @return string Sitebuilder Asset Path
+	 */
+	public function filterSitebuilderImageAssetPath( $asset_path ) {
+		return PLUGIN_URL . '/nexcess-mapps/assets/';
+	}
+
+	/**
+	 * Return the URL for use in the sidebar of final wizard screens.
+	 *
+	 * @param null|string $url
+	 * @param string      $admin_page_slug
+	 * @param string      $wizard_slug
+	 *
+	 * @return null|string
+	 */
+	public function filterSitebuilderNextUrl( $url, $admin_page_slug, $wizard_slug ) {
+		if ( 'sitebuilder' === $admin_page_slug && 'look-and-feel' === $wizard_slug ) {
+			return SitebuilderContainer::getInstance()->get( StoreDetails::class )->getPageUrl();
+		}
+
+		return $url;
+	}
+
+	/**
+	 * Return the URL for sending the user to purchase selected domains.
+	 *
+	 * @param string $url
+	 *
+	 * @return string
+	 */
+	public function filterSitebuilderPurchaseUrl( $url ) {
+		$domain = 'my.nexcess.net';
+
+		if ( $this->settings->is_qa_environment ) {
+			$domain = 'my.qa.nxswd.net';
+		}
+
+		return sprintf( 'https://%s/external/login?id={UUID}&theme=storebuilder', $domain );
 	}
 
 	/**
@@ -417,6 +491,31 @@ class StoreBuilder extends Integration {
 		$features['remote-inbox-notifications']  = false;
 
 		return $features;
+	}
+
+	/**
+	 * Register StoreBuilder admin color scheme.
+	 */
+	public function registerAdminColorScheme() {
+		$assets_dir = PLUGIN_URL . '/nexcess-mapps/assets/';
+		wp_admin_css_color( 'storebuilder_scheme_v3', __( 'StoreBuilder', 'nexcess-mapps' ),
+			$assets_dir . '/storebuilder-scheme-v3.css',
+			[ '#2a3353', '#ffffff', '#192039', '#192039' ],
+			[
+				'base'    => '#ffffff',
+				'focus'   => '#ffffff',
+				'current' => '#ffffff',
+			]
+		);
+	}
+
+	/**
+	 * Set default admin color scheme.
+	 *
+	 * @param int $user_id User ID.
+	 */
+	public function setDefaultAdminColorScheme( $user_id ) {
+		update_user_meta( $user_id, 'admin_color', 'storebuilder_scheme_v3' );
 	}
 
 	/**
@@ -500,13 +599,6 @@ class StoreBuilder extends Integration {
 	}
 
 	/**
-	 * Render content inside the launch widget.
-	 */
-	public function renderLaunchContentAfter() {
-		$this->renderTemplate( 'widgets/storebuilder-launch-after' );
-	}
-
-	/**
 	 * Render the welcome panel on the WP Admin dashboard.
 	 */
 	public function renderWelcomePanel() {
@@ -534,7 +626,8 @@ class StoreBuilder extends Integration {
 		$option['menuSections'] = Helpers::makeSimpleAdminMenu( [
 			'dashboard',
 			'__nexcess-mapps',
-			'__storebuilderapp',
+			'__sitebuilder',
+			'__sitebuilder-store-details',
 			[ __( 'Content', 'nexcess-mapps' ), 'admin-page', [
 				'posts',
 				'media',
@@ -559,13 +652,95 @@ class StoreBuilder extends Integration {
 	}
 
 	/**
+	 * Loads the scripts required for the pointer to show on the Admin
+	 * Dashboard. The should_load_integration() method loads too early
+	 * in the life cylce to test if we are on the dashboard page so we
+	 * are doing it before enqueing and displaying the scripts.
+	 */
+	public function loadPointerScripts() {
+		$screen = get_current_screen();
+
+		if ( ! isset( $screen ) || ! key_exists( $screen->id, $this->admin_pointers ) || ! current_user_can( 'administrator' ) ) {
+			return;
+		}
+
+		if ( in_array( false, $this->admin_pointers[ $screen->id ]['conditions'], true ) ) {
+			return;
+		}
+
+		wp_enqueue_script( 'jquery' );
+		wp_enqueue_style( 'wp-pointer' );
+		wp_enqueue_script( 'wp-pointer' );
+
+		if ( ! get_user_meta( get_current_user_id(), $this->admin_pointers[ $screen->id ]['action'], true ) ) {
+			$pointer_content = sprintf(
+				'<h3>%s</h3><p>%s</p>',
+				esc_html( $this->admin_pointers[ $screen->id ]['header'] ),
+				esc_html( $this->admin_pointers[ $screen->id ]['text'] )
+			);
+			?>
+
+			<script type="text/javascript">
+				//<![CDATA[
+				jQuery( function () {
+					jQuery( '#adminmenu #<?php echo esc_attr( $this->admin_pointers[ $screen->id ]['target'] ); ?>' ).pointer( {
+						content: '<?php echo wp_kses_post( $pointer_content ); ?>',
+						position: {
+							edge: 'left',
+							align: 'center'
+						},
+						show: function( event, t ){
+							t.pointer.css( {
+								position: 'fixed'
+							} );
+						},
+						close: function() {
+							jQuery.post( ajaxurl, {
+								screen: '<?php echo esc_js( $screen->id ); ?>',
+								pointer: '<?php echo esc_js( $this->admin_pointers[ $screen->id ]['slug'] ); ?>',
+								action: '<?php echo esc_js( $this->admin_pointers[ $screen->id ]['action'] ); ?>',
+								_nonce: '<?php echo esc_js( wp_create_nonce( $this->admin_pointers[ $screen->id ]['slug'] ) ); ?>'
+							});
+						}
+					} ).pointer( 'open' );
+				} );
+				//]]>
+			</script>
+			<?php
+		}
+	}
+
+	/**
+	 * Catches the AJAX request to dismiss the pointer and sets the user meta
+	 * to not show the pointer again.
+	 */
+	public function dismissPointer() {
+		if ( ! isset( $_REQUEST['screen'] ) || ! isset( $this->admin_pointers[ $_REQUEST['screen'] ] ) || ! isset( $_REQUEST['action'] ) || ! isset( $_REQUEST['_nonce'] ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$pointer = $this->admin_pointers[ $_REQUEST['screen'] ];
+
+		if ( ! wp_verify_nonce( $_REQUEST['_nonce'], $pointer['slug'] ) ) {
+			wp_send_json_error( __( 'Invalid nonce.', 'nexcess-mapps' ) );
+		}
+
+		if ( $pointer['action'] === $_REQUEST['action'] ) {
+			update_user_meta( get_current_user_id(), $pointer['action'], true, true );
+			wp_send_json_success();
+		}
+
+		wp_send_json_error( __( 'Invalid screen and action combination.', 'nexcess-mapps' ) );
+	}
+
+	/**
 	 * Retrieve content from the app and ingest it into WordPress.
 	 *
 	 * @param bool $force Optional. Whether or not to run the ingestion regardless of
 	 *                    mayIngestContent(). Default is false.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ContentOverwriteException If ingesting content would cause
-	 *                                                             content to be overwritten.
+	 * @throws ContentOverwriteException If ingesting content would cause content to be overwritten.
 	 */
 	public function ingestContent( $force = false ) {
 		if ( ! $this->mayIngestContent() && ! $force ) {
@@ -628,5 +803,236 @@ class StoreBuilder extends Integration {
 		] );
 
 		return $options;
+	}
+
+	/**
+	 * Helper function to capture started events emitted by the wizards.
+	 *
+	 * @param string $wizard Name of the Wizard.
+	 */
+	public function captureWizardStarted( $wizard ) {
+		$this->captureWizardEvents( $wizard, 'started', gmdate( 'c' ) );
+	}
+
+	/**
+	 * Helper function to capture completion events emitted by the wizards.
+	 *
+	 * @param string $wizard Name of the Wizard.
+	 */
+	public function captureWizardCompleted( $wizard ) {
+		$this->captureWizardEvents( $wizard, 'completed', gmdate( 'c' ) );
+	}
+
+	/**
+	 * Collect and save events emitted by the wizards.
+	 *
+	 * @param string $wizard Name of the Wizard.
+	 * @param string $event  Captured event, typically 'started', 'completed', etc.
+	 * @param mixed  $data   Data to be stored along with the event.
+	 */
+	public function captureWizardEvents( $wizard, $event, $data ) {
+		$wizards                      = $this->getTelemetryData()->get( 'wizards', [] );
+		$wizards[ $wizard ][ $event ] = $data;
+
+		$this->getTelemetryData()->set( 'wizards', $wizards )->save();
+	}
+
+	/**
+	 * Add StoreBuilder telemetry data to telemetry report.
+	 *
+	 * @param array $report
+	 *
+	 * @return array
+	 */
+	public function collectStoreBuilderSetupData( $report = [] ) {
+		$report['setup']['storebuilder']['versions'] = [
+			'initial' => get_option( self::INITIAL_STOREBUILDER_VERSION ),
+			'current' => get_option( self::CURRENT_STOREBUILDER_VERSION ),
+		];
+
+		// Limiting this to just the wizards for now until we have a reason to
+		// capture dynamic data points.
+		if ( ! empty( $this->getTelemetryData()->get( 'wizards' ) ) ) {
+			$report['setup']['storebuilder']['wizards'] = $this->getTelemetryData()->get( 'wizards' );
+		}
+
+		return $report;
+	}
+
+	/**
+	 * Add WooCommerce telemetry data to telemetry report.
+	 *
+	 * @param array $report
+	 *
+	 * @return array
+	 */
+	public function collectWooCommerceSetupData( $report = [] ) {
+		// We only load StoreBuilder if WooCommerce is installed, so grabbing the option with the namespace/constant should be safe.
+		$wc_profile = get_option( \Automattic\WooCommerce\Internal\Admin\Onboarding\OnboardingProfile::DATA_OPTION, [ 'product_types' => [] ] );
+
+		if ( array_key_exists( 'product_types', $wc_profile ) ) {
+			$product_types = $wc_profile['product_types'];
+		} else {
+			$store_setup   = SitebuilderContainer::getInstance()->get( StoreSetup::class );
+			$product_types = $store_setup->getProductTypes();
+		}
+
+		if ( ! empty( $product_types ) ) {
+			// Use the setup section of the reports since this shouldn't be stored with each daily report.
+			$report['setup']['woocommerce']['product_types'] = $product_types;
+		}
+
+		return $report;
+	}
+
+	/**
+	 * Check if we're updating to a new version of StoreBuilder and run upgrades as necessary.
+	 */
+	public function maybeUpgradeStoreBuilder() {
+		// No data migrations should be performed during the initial StoreBuilder setup.
+		if ( defined( 'STOREBUILDER_SETUP' ) && STOREBUILDER_SETUP ) {
+			return;
+		}
+
+		// If we don't have any StoreBuilder or SiteBuilder data stored we don't have anything to migrate.
+		$storebuilder_ftc = get_option( '_storebuilder_ftc' );
+		$sitebuilder_ftc  = get_option( '_sitebuilder_ftc' );
+
+		if ( false === $storebuilder_ftc && false === $sitebuilder_ftc ) {
+			return;
+		}
+
+		// @todo: Retrieve the initial StoreBuilder version without attempting to clean after v1.34.0 is
+		// released and the Temporary Data Migration section is removed.
+		$initial_storebuilder_version = get_option( self::INITIAL_STOREBUILDER_VERSION );
+		if ( false === $initial_storebuilder_version ) {
+			$initial_storebuilder_version = $this->v4_migrateSiteBuilderVersion();
+		}
+		$current_storebuilder_version = get_option( self::CURRENT_STOREBUILDER_VERSION, $initial_storebuilder_version );
+
+		// With all the migrations completed, update the site's current StoreBuilder version.
+		if ( version_compare( $current_storebuilder_version, self::VERSION, '<' ) ) {
+			if ( version_compare( $current_storebuilder_version, '4.0', '<' ) ) {
+				// Version 3.0 was the first tracked implementation of StoreBuilder that may require migrations.
+				// Migrate all data to the expected format of StoreBuilder 4.0.
+				$this->v4_migrateSiteBuilderFTCData();
+				$this->v4_migrateSiteBuilderLookAndFeelData();
+				$this->v4_migrateSiteBuilderGoLiveData();
+			}
+
+			if ( version_compare( $current_storebuilder_version, '4.1', '<' ) ) {
+				// A new rewrite rule was introduced in Sitebuilder v0.4.0 which matches up to StoreBuilder v4.1.
+				flush_rewrite_rules();
+			}
+
+			update_option( self::CURRENT_STOREBUILDER_VERSION, self::VERSION, true );
+		}
+	}
+
+	/**
+	 * Migrate StoreBuilder Version from the existing v2/v3 option to one which follows
+	 * the `nexcess_mapps_` naming scheme.
+	 *
+	 * @param string $initial_storebuilder_version
+	 *
+	 * @return string
+	 */
+	protected function v4_migrateSiteBuilderVersion( $initial_storebuilder_version = '' ) {
+		$storebuilder_version = get_option( 'storebuilder_version' );
+		if ( false !== $storebuilder_version ) {
+			$initial_storebuilder_version = (string) $storebuilder_version;
+			if ( update_option( self::INITIAL_STOREBUILDER_VERSION, $storebuilder_version, true ) ) {
+				delete_option( 'storebuilder_version' );
+			}
+		} elseif ( empty( $initial_storebuilder_version ) ) {
+			// If no initial StoreBuilder version is set, then we're dealing with one of the earliest
+			// sites (StoreBuilder v2.0) that did not store a tracked version in the options table.
+			$initial_storebuilder_version = '2.0';
+			update_option( self::INITIAL_STOREBUILDER_VERSION, $initial_storebuilder_version, true );
+		}
+
+		return $initial_storebuilder_version;
+	}
+
+	/**
+	 * Migrate StoreBuilder FTC data to the sitebuilder_ftc and sitebuilder_store_details options.
+	 */
+	protected function v4_migrateSiteBuilderFTCData() {
+		$_storebuilder_ftc = get_option( '_storebuilder_ftc' );
+
+		if ( false !== $_storebuilder_ftc && is_array( $_storebuilder_ftc ) ) {
+			$_sitebuilder_store_setup = [];
+
+			if ( isset( $_storebuilder_ftc['producttype'] ) ) {
+				$_sitebuilder_store_setup['producttype'] = $_storebuilder_ftc['producttype'];
+				unset( $_storebuilder_ftc['producttype'] );
+			}
+
+			if ( isset( $_storebuilder_ftc['productcount'] ) ) {
+				$_sitebuilder_store_setup['productcount'] = $_storebuilder_ftc['productcount'];
+				unset( $_storebuilder_ftc['productcount'] );
+			}
+
+			if ( isset( $_storebuilder_ftc['ftc_complete'] ) ) {
+				$_sitebuilder_store_setup['complete'] = $_storebuilder_ftc['ftc_complete'];
+				$_storebuilder_ftc['complete']        = $_storebuilder_ftc['ftc_complete'];
+				unset( $_storebuilder_ftc['ftc_complete'] );
+			} else {
+				$_sitebuilder_store_setup['complete'] = false;
+				$_storebuilder_ftc['complete']        = false;
+			}
+
+			$_ftc_updated = update_option( '_sitebuilder_ftc', $_storebuilder_ftc, false );
+			$_store_setup = update_option( '_sitebuilder_store_setup', $_sitebuilder_store_setup, false );
+
+			if ( $_ftc_updated && $_store_setup ) {
+				delete_option( '_storebuilder_ftc' );
+			}
+		} else {
+			$_sitebuilder_store_setup = [
+				'producttype'  => '',
+				'productcount' => '',
+				'complete'     => false,
+			];
+			update_option( '_sitebuilder_store_setup', $_sitebuilder_store_setup, false );
+		}
+	}
+
+	/**
+	 * Migrate the StoreBuilder Look And Feel Data to the SiteBuilder Look And Feel data option.
+	 */
+	protected function v4_migrateSiteBuilderLookAndFeelData() {
+		$_storebuilder_look_and_feel = get_option( '_storebuilder_look_and_feel' );
+
+		if ( false !== $_storebuilder_look_and_feel ) {
+			$_storebuilder_look_and_feel['complete'] = count( $_storebuilder_look_and_feel ) > 0;
+			if ( update_option( '_sitebuilder_look_and_feel', $_storebuilder_look_and_feel, false ) ) {
+				delete_option( '_storebuilder_look_and_feel' );
+			}
+		}
+	}
+
+	/**
+	 * Migrate the StoreBuilder GoLive Data to the SiteBuilder GoLive data option.
+	 */
+	protected function v4_migrateSiteBuilderGoLiveData() {
+		$_storebuilder_go_live          = get_option( '_storebuilder_go_live' );
+		$_storebuilder_verifying_domain = get_option( '_storebuilder_verifying_domain' );
+
+		$_sitebuilder_go_live = [
+			'complete' => $_storebuilder_go_live,
+		];
+
+		if ( false !== $_storebuilder_verifying_domain ) {
+			$_sitebuilder_go_live['verifying_domain'] = $_storebuilder_verifying_domain;
+		}
+
+		if ( update_option( '_sitebuilder_go_live', $_sitebuilder_go_live, false ) ) {
+			delete_option( '_storebuilder_go_live' );
+
+			if ( false !== $_storebuilder_verifying_domain ) {
+				delete_option( '_storebuilder_verifying_domain' );
+			}
+		}
 	}
 }

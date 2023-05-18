@@ -6,8 +6,8 @@
 
 namespace Nexcess\MAPPS\Support;
 
-use Nexcess\MAPPS\Exceptions\FilesystemException;
-use Nexcess\MAPPS\Exceptions\WPErrorException;
+use StellarWP\PluginFramework\Exceptions\FilesystemException;
+use StellarWP\PluginFramework\Exceptions\WPErrorException;
 use WP_Filesystem_Base;
 
 use function WP_Filesystem;
@@ -19,8 +19,8 @@ class Filesystem {
 	 *
 	 * @global $wp_filesystem
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If anything goes wrong.
-	 * @throws \Nexcess\MAPPS\Exceptions\WPErrorException    If WP_Filesystem() fails.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If anything goes wrong.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPErrorException    If WP_Filesystem() fails.
 	 *
 	 * @return \WP_Filesystem_Base The initialized WP_Filesystem variant.
 	 */

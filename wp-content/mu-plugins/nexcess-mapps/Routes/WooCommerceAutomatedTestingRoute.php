@@ -3,6 +3,7 @@
 namespace Nexcess\MAPPS\Routes;
 
 use Nexcess\MAPPS\Integrations\WooCommerceAutomatedTesting;
+use WP_Error;
 use WP_REST_Request;
 
 class WooCommerceAutomatedTestingRoute extends RestRoute {
@@ -44,11 +45,18 @@ class WooCommerceAutomatedTestingRoute extends RestRoute {
 	 *
 	 * @param WP_REST_Request $request The REST request.
 	 *
-	 * @return bool|\WP_Error True if authorized, false or a WP_Error object otherwise. If a
-	 *                        WP_Error object is returned, it will use its error message. Otherwise,
-	 *                        a default message will be used.
+	 * @return bool|WP_Error True if authorized, false or a WP_Error object otherwise. If a
+	 *                       WP_Error object is returned, it will use its error message. Otherwise,
+	 *                       a default message will be used.
 	 */
 	public function authorizeRequest( WP_REST_Request $request ) {
+		if ( ! $this->integration->getOption()->get( 'enable_wcat', false ) ) {
+			return new WP_Error(
+				'mapps-rest-route-invalid',
+				__( 'The route is invalid.', 'nexcess-mapps' )
+			);
+		}
+
 		$options = get_option( WooCommerceAutomatedTesting::OPTION_NAME );
 		$api_key = ! empty( $options['api_key'] ) ? $options['api_key'] : '';
 

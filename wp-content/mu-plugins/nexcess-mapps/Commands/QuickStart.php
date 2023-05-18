@@ -169,14 +169,6 @@ class QuickStart extends Command {
 		// Remove the Starter Templates plugin.
 		$this->wp( 'plugin uninstall --deactivate kadence-starter-templates' );
 
-		// Send the welcome email.
-		$this->step( 'Sending welcome email' );
-		$admin = get_user_by( 'email', get_option( 'admin_email' ) );
-
-		if ( $admin ) {
-			$this->integration->sendWelcomeEmail( $admin );
-		}
-
 		$this->success( sprintf( 'Site %s has been built successfully!', $site_id ) );
 	}
 }

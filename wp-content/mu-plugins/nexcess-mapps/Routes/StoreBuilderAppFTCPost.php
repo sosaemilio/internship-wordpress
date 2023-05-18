@@ -16,6 +16,7 @@ class StoreBuilderAppFTCPost extends RestRoute {
 	const ADDRESSLINEONE = 'addressLine1';
 	const ADDRESSLINETWO = 'addressLine2';
 	const CITY           = 'city';
+	const STATE          = 'state';
 	const REGION         = 'region';
 	const POSTCODE       = 'postCode';
 	const CURRENCY       = 'currency';
@@ -99,6 +100,10 @@ class StoreBuilderAppFTCPost extends RestRoute {
 
 		if ( $request->has_param( self::CITY ) ) {
 			$this->storebuilder_ftc->setCity( $request->get_param( self::CITY ) );
+		}
+
+		if ( $request->has_param( self::STATE ) ) {
+			$this->storebuilder_ftc->setState( $request->get_param( self::STATE ) );
 		}
 
 		if ( $request->has_param( self::REGION ) ) {

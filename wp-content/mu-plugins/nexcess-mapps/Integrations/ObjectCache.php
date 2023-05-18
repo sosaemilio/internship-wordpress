@@ -8,6 +8,8 @@ namespace Nexcess\MAPPS\Integrations;
 
 use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
+use Nexcess\MAPPS\Concerns\InvokesCli;
+use Nexcess\MAPPS\Modules\Telemetry;
 use Nexcess\MAPPS\Plugins;
 use Nexcess\MAPPS\Services\AdminBar;
 use Nexcess\MAPPS\Services\Managers\PluginConfigManager;
@@ -18,6 +20,7 @@ use WP_Screen;
 class ObjectCache extends Integration {
 	use HasHooks;
 	use HasWordPressDependencies;
+	use InvokesCli;
 
 	/**
 	 * @var \Nexcess\MAPPS\Services\AdminBar
@@ -33,6 +36,21 @@ class ObjectCache extends Integration {
 	 * @var \Nexcess\MAPPS\Settings
 	 */
 	protected $settings;
+
+	/**
+	 * The key used in the telemetry report which contains the relevant integration info.
+	 */
+	const TELEMETRY_FEATURE_KEY = 'object_cache';
+
+	/**
+	 * The key used to report whether the integration is enabled.
+	 */
+	const TELEMETRY_FEATURE_ENABLED_KEY = 'enabled';
+
+	/**
+	 * The key used to report the integration provider.
+	 */
+	const TELEMETRY_FEATURE_PROVIDER_KEY = 'provider';
 
 	/**
 	 * @param \Nexcess\MAPPS\Settings                              $settings
@@ -70,10 +88,10 @@ class ObjectCache extends Integration {
 	protected function getFilters() {
 		// phpcs:disable WordPress.Arrays
 		return [
-			[ 'added_option',              [ $this, 'maybeClearAlloptionsCache'         ]        ],
-			[ 'updated_option',            [ $this, 'maybeClearAlloptionsCache'         ]        ],
-			[ 'deleted_option',            [ $this, 'maybeClearAlloptionsCache'         ]        ],
 			[ 'default_hidden_meta_boxes', [ $this, 'hideObjectCacheProDashboardWidget' ], 10, 2 ],
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'addFeatureToTelemetry' ] ],
+			[ 'objectcache_omit_settings_pointer', '__return_true' ],
+			[ 'site_status_persistent_object_cache_url', [ $this, 'siteStatusPersistentObjectCacheUrl' ] ]
 		];
 		// phpcs:enable WordPress.Arrays
 	}
@@ -103,28 +121,6 @@ class ObjectCache extends Integration {
 				_x( 'Delete expired transients', 'admin bar menu title', 'nexcess-mapps' )
 			)
 		);
-	}
-
-	/**
-	 * Prevent a cache stampede when updating the alloptions cache key.
-	 *
-	 * This is a temporary fix, and should be removed once Trac ticket 31245 is resolved.
-	 *
-	 * @link https://core.trac.wordpress.org/ticket/31245
-	 *
-	 * @param string $option The option being updated.
-	 */
-	public function maybeClearAlloptionsCache( $option ) {
-		if ( wp_installing() ) {
-			return;
-		}
-
-		$alloptions = wp_load_alloptions();
-
-		// If the updated option is among alloptions, clear the cached value.
-		if ( isset( $alloptions[ $option ] ) ) {
-			wp_cache_delete( 'alloptions', 'options' );
-		}
 	}
 
 	/**
@@ -203,6 +199,7 @@ class ObjectCache extends Integration {
 	public function installObjectCacheDropIn() {
 		// Known object cache plugins, in order of priority.
 		$plugins = [
+			Plugins\ObjectCachePro::class,
 			Plugins\RedisCache::class,
 			Plugins\WPRedis::class,
 		];
@@ -215,5 +212,38 @@ class ObjectCache extends Integration {
 				break;
 			}
 		}
+	}
+
+	/**
+	 * Filter the Persistent object cache URL.
+	 * Replace the original WordPress guide with our own.
+	 *
+	 * @return string URL to object cache guide
+	 */
+	public function siteStatusPersistentObjectCacheUrl() {
+		return 'https://www.nexcess.net/help/enabling-redis-object-caching/';
+	}
+
+	/**
+	 * Adds feature integration information to the telemetry report.
+	 *
+	 * @param array[] $report The gathered report data.
+	 *
+	 * @return array[] The $report array.
+	 */
+	public function addFeatureToTelemetry( array $report ) {
+		$type    = $this->makeCommand( 'wp cache type' )
+			->setPriority( 10 )
+			->setTimeout( 60 )
+			->execute()
+			->getOutput();
+		$enabled = 'Default' !== $type;
+
+		$report['features'][ self::TELEMETRY_FEATURE_KEY ] = [
+			self::TELEMETRY_FEATURE_ENABLED_KEY  => $enabled,
+			self::TELEMETRY_FEATURE_PROVIDER_KEY => $enabled ? $type : null,
+		];
+
+		return $report;
 	}
 }

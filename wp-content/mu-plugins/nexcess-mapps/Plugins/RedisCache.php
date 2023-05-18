@@ -69,6 +69,7 @@ class RedisCache extends Plugin {
 		$this->config->setConstant( 'WP_REDIS_PORT', $this->settings->redis_port );
 		$this->config->setConstant( 'WP_REDIS_DISABLE_BANNERS', true );
 		$this->config->setConstant( 'WP_REDIS_DISABLE_COMMENT', true );
+		wp_cache_flush();
 	}
 
 	/**
@@ -86,5 +87,6 @@ class RedisCache extends Plugin {
 		$this->config->removeConstant( 'WP_REDIS_PORT' );
 		$this->config->removeConstant( 'WP_REDIS_DISABLE_BANNERS' );
 		$this->config->removeConstant( 'WP_REDIS_DISABLE_COMMENT' );
+		wp_cache_flush();
 	}
 }

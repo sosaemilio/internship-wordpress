@@ -9,7 +9,6 @@
 namespace Nexcess\MAPPS;
 
 use Nexcess\MAPPS\Exceptions\IsNotNexcessSiteException;
-use Nexcess\MAPPS\Integrations\Integration;
 use WP_CLI;
 
 class Plugin {
@@ -38,9 +37,9 @@ class Plugin {
 		'installer'            => Commands\Installer::class,
 		'ithemes'              => Commands\iThemes::class,
 		'migration'            => Commands\Migration::class,
+		'object-cache-pro'     => Commands\ObjectCachePro::class,
 		'performance-monitor'  => Commands\PerformanceMonitor::class,
 		'qubely'               => Commands\Qubely::class,
-		'quickstart'           => Commands\QuickStart::class,
 		'setup'                => [ Commands\Setup::class, 'setup' ],
 		'setup:pre-install'    => [ Commands\Setup::class, 'preInstallPlugins' ],
 		'setup:woocommerce'    => [ Commands\Setup::class, 'woocommerce' ],
@@ -48,7 +47,6 @@ class Plugin {
 		'storebuilder'         => Commands\StoreBuilder::class,
 		'support'              => Commands\Support::class,
 		'support-user'         => [ Commands\Support::class, 'supportUser' ], // Deprecated by 'support user' command.
-		'vc'                   => Commands\VisualComparison::class,
 		'wc'                   => Commands\WooCommerce::class,
 		'wc automated-testing' => Commands\WooCommerceAutomatedTesting::class,
 		'wp-all-import-pro'    => Commands\WPAllImportPro::class,
@@ -74,6 +72,8 @@ class Plugin {
 		 */
 		'global' => [
 			Integrations\PHPCompatibility::class,
+			Integrations\ObjectCache::class,
+			Integrations\PluginConfig::class,
 		],
 
 		/*
@@ -81,6 +81,8 @@ class Plugin {
 		 */
 		'mapps'  => [
 			Integrations\Admin::class,
+			Integrations\AutoLogin::class,
+			Integrations\BrainstormForce::class,
 			Integrations\Cache::class,
 			Integrations\Cron::class,
 			Integrations\Dashboard::class,
@@ -91,36 +93,25 @@ class Plugin {
 			Integrations\Feedback::class,
 			Integrations\Iconic::class,
 			Integrations\Jetpack::class,
+			Integrations\LegacyLicenseMigration::class,
 			Integrations\Maintenance::class,
-			Integrations\ObjectCache::class,
 			Integrations\PageCache::class,
 			Integrations\Partners::class,
 			Integrations\PerformanceMonitor::class,
-			Integrations\PluginConfig::class,
 			Integrations\PluginInstaller::class,
-			Integrations\QuickStart::class,
 			Integrations\Recapture::class,
 			Integrations\RegressionSites::class,
 			Integrations\Requirements::class,
 			Integrations\RestApi::class,
+			Integrations\SalesPerformanceMonitor::class,
 			Integrations\SiteHealth::class,
 			Integrations\StagingSites::class,
 			Integrations\StellarWP::class,
-			Integrations\StoreBuilder\AdminPointer::class,
-			Integrations\StoreBuilder\AutoLaunch::class,
-			Integrations\StoreBuilderApp::class,
 			Integrations\StoreBuilder::class,
-			Integrations\Support::class,
-			Integrations\SupportUsers::class,
-			Integrations\Telemetry::class,
 			Integrations\Themes::class,
-			Integrations\Updates::class,
-			Integrations\Varnish::class,
-			Integrations\VisualComparison::class,
 			Integrations\WooCommerce::class,
 			Integrations\WooCommerceAutomatedTesting::class,
 			Integrations\WooCommerceCartFragments::class,
-			Integrations\WooCommerceUpperLimits::class,
 
 			// Loaded after the main integrations are loaded, so that the shouldLoad
 			// method can accurately determine whether or not to load the integration.
@@ -155,7 +146,7 @@ class Plugin {
 	 * 2. Load registered integrations.
 	 * 3. Load registered WP-CLI commands (if WP-CLI is available).
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\IsNotNexcessSiteException If bootstrapping on a non-MAPPS site.
+	 * @throws IsNotNexcessSiteException If bootstrapping on a non-MAPPS site.
 	 */
 	public function bootstrap() {
 		// Abort if this is not an Nexcess Managed Apps site.
@@ -241,29 +232,6 @@ class Plugin {
 	}
 
 	/**
-	 * Define constants for legacy integrations.
-	 *
-	 * Eventually, these constants should be unnecessary and removed.
-	 */
-	protected function defineConstants() {
-		defined( 'ICONIC_DISABLE_DASH' ) || define( 'ICONIC_DISABLE_DASH', true );
-
-		defined( 'NEXCESS_MAPPS_SITE' ) || define( 'NEXCESS_MAPPS_SITE', $this->settings->is_mapps_site );
-		defined( 'NEXCESS_MAPPS_PLAN_NAME' ) || define( 'NEXCESS_MAPPS_PLAN_NAME', $this->settings->plan_name );
-		defined( 'NEXCESS_MAPPS_PACKAGE_LABEL' ) || define( 'NEXCESS_MAPPS_PACKAGE_LABEL', $this->settings->package_label );
-		defined( 'NEXCESS_MAPPS_ENDPOINT' ) || define( 'NEXCESS_MAPPS_ENDPOINT', $this->settings->managed_apps_endpoint );
-		defined( 'NEXCESS_MAPPS_TOKEN' ) || define( 'NEXCESS_MAPPS_TOKEN', $this->settings->managed_apps_token );
-
-		if ( $this->settings->is_mwch_site && ! defined( 'NEXCESS_MAPPS_MWCH_SITE' ) ) {
-			define( 'NEXCESS_MAPPS_MWCH_SITE', true );
-		}
-
-		if ( $this->settings->is_staging_site && ! defined( 'NEXCESS_MAPPS_STAGING_SITE' ) ) {
-			define( 'NEXCESS_MAPPS_STAGING_SITE', true );
-		}
-	}
-
-	/**
 	 * Load registered commands.
 	 */
 	protected function loadCommands() {
@@ -296,6 +264,29 @@ class Plugin {
 			if ( $this->settings->is_qa_environment ) {
 				WP_CLI::add_command( $command_name . ' platform-testing', Commands\PlatformTesting::class );
 			}
+		}
+	}
+
+	/**
+	 * Define constants for legacy integrations.
+	 *
+	 * Eventually, these constants should be unnecessary and removed.
+	 */
+	protected function defineConstants() {
+		defined( 'ICONIC_DISABLE_DASH' ) || define( 'ICONIC_DISABLE_DASH', true );
+
+		defined( 'NEXCESS_MAPPS_SITE' ) || define( 'NEXCESS_MAPPS_SITE', $this->settings->is_mapps_site );
+		defined( 'NEXCESS_MAPPS_PLAN_NAME' ) || define( 'NEXCESS_MAPPS_PLAN_NAME', $this->settings->plan_name );
+		defined( 'NEXCESS_MAPPS_PACKAGE_LABEL' ) || define( 'NEXCESS_MAPPS_PACKAGE_LABEL', $this->settings->package_label );
+		defined( 'NEXCESS_MAPPS_ENDPOINT' ) || define( 'NEXCESS_MAPPS_ENDPOINT', $this->settings->managed_apps_endpoint );
+		defined( 'NEXCESS_MAPPS_TOKEN' ) || define( 'NEXCESS_MAPPS_TOKEN', $this->settings->managed_apps_token );
+
+		if ( $this->settings->is_mwch_site && ! defined( 'NEXCESS_MAPPS_MWCH_SITE' ) ) {
+			define( 'NEXCESS_MAPPS_MWCH_SITE', true );
+		}
+
+		if ( $this->settings->is_staging_site && ! defined( 'NEXCESS_MAPPS_STAGING_SITE' ) ) {
+			define( 'NEXCESS_MAPPS_STAGING_SITE', true );
 		}
 	}
 

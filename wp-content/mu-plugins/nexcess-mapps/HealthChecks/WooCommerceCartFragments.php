@@ -8,7 +8,7 @@ namespace Nexcess\MAPPS\HealthChecks;
 
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
 use Nexcess\MAPPS\Integrations\WooCommerceCartFragments as Integration;
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 
 class WooCommerceCartFragments extends HealthCheck {
 	use HasWordPressDependencies;

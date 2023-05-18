@@ -2,8 +2,8 @@
 
 namespace Nexcess\MAPPS\Services\Importers;
 
-use Nexcess\MAPPS\Exceptions\IngestionException;
-use Nexcess\MAPPS\Exceptions\WPErrorException;
+use StellarWP\PluginFramework\Exceptions\IngestionException;
+use StellarWP\PluginFramework\Exceptions\WPErrorException;
 use WC_Product_CSV_Importer_Controller;
 
 class WooCommerceProductImporter {
@@ -16,7 +16,7 @@ class WooCommerceProductImporter {
 	 *
 	 * @param string $csv The system path to the CSV file.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\IngestionException If the CSV file cannot be imported.
+	 * @throws \StellarWP\PluginFramework\Exceptions\IngestionException If the CSV file cannot be imported.
 	 *
 	 * @return array[] {
 	 *
@@ -71,8 +71,8 @@ class WooCommerceProductImporter {
 	 *
 	 * @param string $url The remote URL for the attachment.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\IngestionException If the products cannot be imported.
-	 * @throws \Nexcess\MAPPS\Exceptions\WPErrorException   If the products cannot be imported.
+	 * @throws \StellarWP\PluginFramework\Exceptions\IngestionException If the products cannot be imported.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPErrorException   If the products cannot be imported.
 	 */
 	public function importFromUrl( $url ) {
 		add_filter( 'woocommerce_csv_product_import_valid_filetypes', [ $this, 'filterValidCsvTypes' ] );
@@ -106,7 +106,7 @@ class WooCommerceProductImporter {
 	 *
 	 * @param string $path The local file path for the attachment.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\IngestionException If the products cannot be imported.
+	 * @throws \StellarWP\PluginFramework\Exceptions\IngestionException If the products cannot be imported.
 	 */
 	public function importFromLocalFile( $path ) {
 		add_filter( 'woocommerce_csv_product_import_valid_filetypes', [ $this, 'filterValidCsvTypes' ] );

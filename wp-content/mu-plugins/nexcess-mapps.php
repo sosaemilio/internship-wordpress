@@ -3,7 +3,7 @@
  * Plugin Name: Nexcess Managed Apps
  * Plugin URI:  https://www.nexcess.net
  * Description: Functionality to support the Nexcess Managed Apps WordPress and WooCommerce platforms.
- * Version:     1.27.5
+ * Version:     1.40.0
  * Author:      Nexcess
  * Author URI:  https://www.nexcess.net
  * Text Domain: nexcess-mapps
@@ -14,8 +14,9 @@
 
 namespace Nexcess\MAPPS;
 
-use Nexcess\MAPPS\Support\Branding;
+use Nexcess\MAPPS\Exceptions\IsNotNexcessSiteException;
 use Nexcess\MAPPS\Support\PlatformRequirements;
+use StellarWP\PluginFramework\Support\Branding;
 
 // At this time, the MU plugin doesn't need to do anything if WordPress is currently installing.
 if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
@@ -29,7 +30,7 @@ if ( did_action( 'muplugins_loaded' ) ) {
 }
 
 // The version of the Nexcess Managed Apps plugin.
-define( __NAMESPACE__ . '\PLUGIN_VERSION', '1.27.5' );
+define( __NAMESPACE__ . '\PLUGIN_VERSION', '1.40.0' );
 define( __NAMESPACE__ . '\PLUGIN_URL', plugins_url( '', __FILE__ ) );
 define( __NAMESPACE__ . '\PLUGIN_DIR', __DIR__ . '/nexcess-mapps/' );
 define( __NAMESPACE__ . '\VENDOR_DIR', __DIR__ . '/nexcess-mapps/vendor/' );
@@ -50,9 +51,18 @@ try {
 	require_once __DIR__ . '/nexcess-mapps/vendor/stevegrunwell/wp-admin-tabbed-settings-pages/wp-admin-tabbed-settings-pages.php';
 
 	// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-	$plugin = ( new Container() )->get( Plugin::class );
+	$container_pf = new ContainerPF();
+	$container    = new Container();
+
+	$container_pf->get( PluginPF::class )->init();
+	$container->extend( ContainerPF::class, function() use ( $container_pf ) {
+		return $container_pf;
+	} );
+	// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+	$plugin = $container->get( Plugin::class );
 	$plugin->bootstrap();
-} catch ( Exceptions\IsNotNexcessSiteException $e ) {
+} catch ( IsNotNexcessSiteException $e ) {
+	$container = new Container();
 	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
 	trigger_error( esc_html( sprintf(
 		'The %1$s plugin may only be loaded on the %2$s platform.',
@@ -60,6 +70,7 @@ try {
 		Branding::getPlatformName()
 	) ), E_USER_NOTICE );
 } catch ( \Exception $e ) {
+	$container = new Container();
 	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_trigger_error
 	trigger_error( esc_html( sprintf(
 		'%1$s Error: %2$s',

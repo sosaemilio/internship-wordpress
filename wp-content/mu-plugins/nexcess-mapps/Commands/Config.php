@@ -2,8 +2,8 @@
 
 namespace Nexcess\MAPPS\Commands;
 
-use Nexcess\MAPPS\Exceptions\ConfigException;
 use Nexcess\MAPPS\Services\WPConfig;
+use StellarWP\PluginFramework\Exceptions\WPConfigException;
 
 /**
  * WP-CLI sub-commands for modifying a site's wp-config.php file.
@@ -39,7 +39,7 @@ class Config extends Command {
 
 		try {
 			$this->config->setConstant( 'WP_CACHE_KEY_SALT', $salt );
-		} catch ( ConfigException $e ) {
+		} catch ( WPConfigException $e ) {
 			$this->error( 'Unable to update WP_CACHE_KEY_SALT: ' . $e->getMessage(), 1 );
 		}
 

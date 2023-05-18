@@ -9,7 +9,7 @@ namespace Nexcess\MAPPS\Integrations;
 use Nexcess\MAPPS\Concerns\HasAdminPages;
 use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Settings;
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 
 class Dashboard extends Integration {
 	use HasAdminPages;

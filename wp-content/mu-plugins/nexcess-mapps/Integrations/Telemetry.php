@@ -7,11 +7,14 @@
 namespace Nexcess\MAPPS\Integrations;
 
 use Nexcess\MAPPS\Concerns\HasCronEvents;
+use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
+use Nexcess\MAPPS\Services\Telemetry as TelemetryService;
 use Nexcess\MAPPS\Settings;
 use WC_Report_Sales_By_Date;
 
 class Telemetry extends Integration {
 	use HasCronEvents;
+	use ManagesGroupedOptions;
 
 	/**
 	 * @var \Nexcess\MAPPS\Settings
@@ -19,20 +22,27 @@ class Telemetry extends Integration {
 	protected $settings;
 
 	/**
+	 * @var \Nexcess\MAPPS\Services\Telemetry
+	 */
+	protected $telemetry;
+
+	/**
+	 * Option name for inclusion in telemetry data.
+	 */
+	const OPTION_NAME = 'nexcess_mapps_telemetry_addtl';
+
+	/**
 	 * The action used for the related cron event.
 	 */
 	const REPORT_CRON_ACTION = 'nexcess_mapps_usage_tracking';
 
 	/**
-	 * The API endpoint for reporting.
+	 * @param \Nexcess\MAPPS\Settings           $settings
+	 * @param \Nexcess\MAPPS\Services\Telemetry $telemetry
 	 */
-	const REPORTER_ENDPOINT = 'https://plugin-api.liquidweb.com/api/site_report';
-
-	/**
-	 * @param \Nexcess\MAPPS\Settings $settings
-	 */
-	public function __construct( Settings $settings ) {
-		$this->settings = $settings;
+	public function __construct( Settings $settings, TelemetryService $telemetry ) {
+		$this->settings  = $settings;
+		$this->telemetry = $telemetry;
 	}
 
 	/**
@@ -74,18 +84,7 @@ class Telemetry extends Integration {
 	 * Send telemetry data to Nexcess.
 	 */
 	public function sendTelemetryData() {
-		$report        = $this->collectTelemetryData();
-		$report['key'] = $this->settings->telemetry_key;
-
-		return wp_remote_post( self::REPORTER_ENDPOINT, [
-			'headers'  => [
-				'Accept'       => 'application/json',
-				'Content-Type' => 'application/json',
-			],
-			'body'     => wp_json_encode( $report ),
-			'blocking' => false,
-			'timeout'  => 900,
-		] );
+		$this->telemetry->sendReport( $this->collectTelemetryData() );
 	}
 
 	/**
@@ -96,18 +95,13 @@ class Telemetry extends Integration {
 	 *
 	 * @return mixed[]
 	 */
-	protected function collectTelemetryData() {
+	public function collectTelemetryData() {
 		global $wp_version, $wpdb;
 
 		$report = [
 			'admin_email' => get_option( 'admin_email' ),
 			'domain'      => get_home_url(),
 			'ip'          => gethostbyname( php_uname( 'n' ) ),
-			'php_version' => phpversion(),
-			'plugins'     => $this->getPluginData(),
-			'theme'       => get_stylesheet(),
-			'server_name' => gethostname(),
-			'wp_version'  => $wp_version,
 			'lw_info'     => [
 				'account_id'      => $this->settings->account_id,
 				'client_id'       => $this->settings->client_id,
@@ -117,26 +111,30 @@ class Telemetry extends Integration {
 				'service_id'      => $this->settings->service_id,
 				'staging_site'    => $this->settings->is_staging_site,
 				'temp_domain'     => $this->settings->temp_domain,
-				'quickstart_id'   => $this->settings->is_quickstart,
 			],
 			'php_info'    => [
 				'memory_limit'        => ini_get( 'memory_limit' ),
 				'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
 			],
+			'php_version' => phpversion(),
+			'plugins'     => $this->getPluginData(),
 			'server_info' => [
-				'php_version'   => PHP_VERSION,
 				'mysql_version' => $wpdb->get_var( 'SELECT VERSION()' ),
+				'php_version'   => PHP_VERSION,
 				'web_server'    => $_SERVER['SERVER_SOFTWARE'],
 			],
+			'server_name' => gethostname(),
+			'theme'       => get_stylesheet(),
 			'wp_info'     => [
-				'version'             => get_bloginfo( 'version' ),
-				'language'            => get_locale(),
-				'permalink_structure' => get_option( 'permalink_structure' ) ?: 'Default',
 				'abspath'             => constant( 'ABSPATH' ),
+				'language'            => get_locale(),
+				'multisite'           => is_multisite(),
+				'permalink_structure' => get_option( 'permalink_structure' ) ?: 'Default',
+				'version'             => get_bloginfo( 'version' ),
 				'wp_debug'            => defined( 'WP_DEBUG' ) && WP_DEBUG,
 				'wp_memory_limit'     => constant( 'WP_MEMORY_LIMIT' ),
-				'multisite'           => is_multisite(),
 			],
+			'wp_version'  => $wp_version,
 		];
 
 		/**

@@ -3,8 +3,8 @@
 namespace Nexcess\MAPPS\Commands;
 
 use Nexcess\MAPPS\Integrations\PerformanceMonitor as Integration;
-use Nexcess\MAPPS\Services\FeatureFlags;
 use Nexcess\MAPPS\Settings;
+use StellarWP\PluginFramework\Services\FeatureFlags;
 
 /**
  * WP-CLI sub-commands for the Nexcess Performance Monitor.

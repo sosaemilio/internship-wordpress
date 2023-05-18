@@ -8,15 +8,15 @@ namespace Nexcess\MAPPS\Integrations;
 
 use Nexcess\MAPPS\Concerns\HasAssets;
 use Nexcess\MAPPS\Concerns\HasCronEvents;
-use Nexcess\MAPPS\Exceptions\InstallationException;
-use Nexcess\MAPPS\Exceptions\MappsApiException;
 use Nexcess\MAPPS\Services\AdminBar;
 use Nexcess\MAPPS\Services\Installer;
 use Nexcess\MAPPS\Services\Logger;
 use Nexcess\MAPPS\Services\Options;
 use Nexcess\MAPPS\Settings;
 use Nexcess\MAPPS\Support\AdminNotice;
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Exceptions\InstallationException;
+use StellarWP\PluginFramework\Exceptions\MappsApiException;
+use StellarWP\PluginFramework\Support\Branding;
 
 use const Nexcess\MAPPS\PLUGIN_URL;
 

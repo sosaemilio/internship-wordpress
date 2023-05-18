@@ -13,10 +13,6 @@
 *.png
 *.txt
 *.csv
-
-#gits
-.git
-.gitconfig
  
 # WP dirs.
 wp-admin/*
@@ -26,8 +22,10 @@ wp-snapshots/*
 # Ignore everything in the "wp-content" directory, except custom code.
 /wp-content/languages/*
 /wp-content/uploads/*
+/wp-content/plugins/*
 !wp-content/plugins/CUSTOM_PLUGIN_1
 !wp-content/plugins/CUSTOM_PLUGIN_2 # etc.
+/wp-content/themes/*
 !wp-content/themes/CUSTOM_THEME_1
 !wp-content/themes/CUSTOM_THEME_2 # etc.
  

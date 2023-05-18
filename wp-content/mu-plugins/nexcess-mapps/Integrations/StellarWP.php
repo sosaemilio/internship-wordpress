@@ -2,14 +2,17 @@
 
 namespace Nexcess\MAPPS\Integrations;
 
+use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
 use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
+use Nexcess\MAPPS\Modules\Telemetry;
 use Nexcess\MAPPS\Services\Options;
 
 /**
  * @group StellarWP
  */
 class StellarWP extends Integration {
+	use HasHooks;
 	use HasWordPressDependencies;
 	use ManagesGroupedOptions;
 
@@ -17,6 +20,16 @@ class StellarWP extends Integration {
 	 * The option for disabling the StellarWP Plugin Panel.
 	 */
 	const OPTION_NAME = 'nexcess_mapps_stellarwp_plugin_installer';
+
+	/**
+	 * The key used in the telemetry report which contains the relevant integration info.
+	 */
+	const TELEMETRY_FEATURE_KEY = 'stellarwp';
+
+	/**
+	 * The key used to report whether the integration installer is enabled.
+	 */
+	const TELEMETRY_FEATURE_INSTALLER_KEY = 'installer';
 
 	/**
 	 * @var \Nexcess\MAPPS\Services\Options
@@ -52,7 +65,19 @@ class StellarWP extends Integration {
 			$this->loadPlugin( 'stellarwp/stellarwp-plugin-installer/stellarwp-plugin-installer.php' );
 		}
 
+		$this->addHooks();
 		$this->registerOption();
+	}
+
+	/**
+	 * Retrieve all filters for the integration.
+	 *
+	 * @return array[]
+	 */
+	protected function getFilters() {
+		return [
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'addFeatureToTelemetry' ] ],
+		];
 	}
 
 	/**
@@ -91,5 +116,20 @@ class StellarWP extends Integration {
 				'default'     => true,
 			]
 		);
+	}
+
+	/**
+	 * Adds feature integration information to the telemetry report.
+	 *
+	 * @param array[] $report The gathered report data.
+	 *
+	 * @return array[] The $report array.
+	 */
+	public function addFeatureToTelemetry( array $report ) {
+		$report['features'][ self::TELEMETRY_FEATURE_KEY ] = [
+			self::TELEMETRY_FEATURE_INSTALLER_KEY => $this->getStellarWPPluginPanelSetting(),
+		];
+
+		return $report;
 	}
 }

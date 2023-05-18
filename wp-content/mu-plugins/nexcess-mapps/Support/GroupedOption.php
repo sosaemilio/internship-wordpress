@@ -77,6 +77,7 @@ class GroupedOption implements \Countable, \JsonSerializable {
 	 *
 	 * @return int
 	 */
+	#[\ReturnTypeWillChange]
 	public function count() {
 		return count( $this->all() );
 	}
@@ -157,6 +158,7 @@ class GroupedOption implements \Countable, \JsonSerializable {
 	 *
 	 * @return mixed[]
 	 */
+	#[\ReturnTypeWillChange]
 	public function jsonSerialize() {
 		return $this->all();
 	}

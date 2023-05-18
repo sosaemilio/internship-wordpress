@@ -3,6 +3,7 @@
 namespace Nexcess\MAPPS\Support;
 
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
+use StellarWP\PluginFramework\Support\Branding;
 
 class PlatformRequirements {
 	use HasWordPressDependencies;

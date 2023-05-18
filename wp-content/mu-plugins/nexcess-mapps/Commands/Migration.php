@@ -2,8 +2,8 @@
 
 namespace Nexcess\MAPPS\Commands;
 
-use Nexcess\MAPPS\Exceptions\FilesystemException;
 use Nexcess\MAPPS\Services\MigrationCleaner;
+use StellarWP\PluginFramework\Exceptions\FilesystemException;
 
 /**
  * Commands to aid post-migration.

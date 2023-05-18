@@ -69,6 +69,7 @@ class WPRedis extends Plugin {
 			'host' => $this->settings->redis_host,
 			'port' => $this->settings->redis_port,
 		] );
+		wp_cache_flush();
 	}
 
 	/**
@@ -83,5 +84,6 @@ class WPRedis extends Plugin {
 		}
 
 		$this->config->removeVariable( 'redis_server' );
+		wp_cache_flush();
 	}
 }

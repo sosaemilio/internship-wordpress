@@ -1,0 +1,98 @@
+<?php
+
+namespace Nexcess\MAPPS\Commands;
+
+use Nexcess\MAPPS\Integrations\PluginInstaller;
+use Nexcess\MAPPS\Plugins\ObjectCachePro as Plugin;
+
+/**
+ * WP-CLI sub-commands for integrating with Object Cache Pro.
+ */
+class ObjectCachePro extends Command {
+
+	/**
+	 * @var \Nexcess\MAPPS\Plugins\ObjectCachePro
+	 */
+	private $plugin;
+
+	/**
+	 * @var \Nexcess\MAPPS\Integrations\PluginInstaller
+	 */
+	private $pluginInstaller;
+
+	/**
+	 * Create a new command instance.
+	 *
+	 * @param Plugin          $plugin
+	 * @param PluginInstaller $plugin_installer
+	 */
+	public function __construct( Plugin $plugin, PluginInstaller $plugin_installer ) {
+		$this->plugin          = $plugin;
+		$this->pluginInstaller = $plugin_installer;
+	}
+
+	/**
+	 * Adds the cron event for migrating from Redis Cache to Object Cache Pro.
+	 *
+	 * ## EXAMPLES
+	 *
+	 * $ wp nxmapps object-cache-pro migrate
+	 * Success: Redis Cache migration cron scheduled successfully.
+	 */
+	public function migrate() {
+		$this->pluginInstaller->migrateToOCP();
+		if ( ! empty( get_option( 'nexcess_did_migrate_redis_to_ocp', false ) ) ) {
+			$this->success( __( 'Redis Cache migration complete.', 'nexcess-mapps' ) );
+		} else {
+			$this->warning( __( 'Redis Cache migration did not complete successfully.', 'nexcess-mapps' ) );
+		}
+	}
+
+	/**
+	 * Activate the Object Cache Pro License.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <license>
+	 * : License to activate
+	 *
+	 * ## EXAMPLES
+	 *
+	 * $ wp nxmapps object-cache-pro activate abcdefghijklm1234567890
+	 * Success: Activated Object Cache Pro License.
+	 *
+	 * @param string[] $args Top-level arguments.
+	 */
+	public function activate( $args ) {
+		list( $license_key ) = $args;
+
+		// OCP uses object-cache-pro.php as the entry file in older versions, so check for both variations.
+		if ( ! array_key_exists( 'object-cache-pro/object-cache-pro.php', get_plugins() )
+			&& ! array_key_exists( 'object-cache-pro/redis-cache-pro.php', get_plugins() ) ) {
+			$this->error( __( 'Object Cache Pro must be installed first.', 'nexcess-mapps' ) );
+		}
+
+		update_option( 'object_cache_pro_license', sanitize_text_field( $license_key ) );
+		$this->line( __( 'Object Cache Pro license stored. ✅', 'nexcess-mapps' ) );
+
+		if ( ! is_plugin_active( 'object-cache-pro/object-cache-pro.php' )
+			&& ! is_plugin_active( 'object-cache-pro/redis-cache-pro.php' ) ) {
+			$this->line( __( 'Activating Object Cache Pro...', 'nexcess-mapps' ) );
+			$this->wp( 'plugin activate object-cache-pro --quiet' );
+			$this->line( __( 'Object Cache Pro activated. ✅', 'nexcess-mapps' ) );
+		}
+
+		$this->line( __( 'Installing Object Cache Pro drop-in....', 'nexcess-mapps' ) );
+		$this->line( __( 'Setting configuration in wp-config.php....', 'nexcess-mapps' ) );
+		$wrote = $this->plugin->writeConfig();
+		if ( $wrote ) {
+			$this->success( __( 'You are all set to begin using Object Cache Pro! 🎉', 'nexcess-mapps' ) );
+		} else {
+			$this->warning( __( ' There was an issue writing the Object Cache Pro configuration to your wp-config.php file; it will need adjusted manually. Please ensure the following constants are added to your wp-config.php:', 'nexcess-mapps' ) );
+			$this->newline();
+			$this->line( "define( 'WP_REDIS_CONFIG', " . $this->plugin->getRedisConfig() . " );
+define( 'WP_REDIS_DISABLED', false );" );
+			$this->newline();
+		}
+	}
+}

@@ -97,7 +97,7 @@ class SupportUsers extends Integration {
 		$expired = get_users( [
 			'blog_id'      => 0,
 			'meta_key'     => self::USER_EXPIRATION_META_KEY,
-			'meta_value'   => time(),
+			'meta_value'   => strval( time() ),
 			'meta_compare' => '<=',
 			'fields'       => 'ID',
 		] );

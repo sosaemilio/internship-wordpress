@@ -3,8 +3,9 @@
 namespace Nexcess\MAPPS\Commands;
 
 use Nexcess\MAPPS\Integrations\PageCache;
-use Nexcess\MAPPS\Integrations\SupportUsers;
+use Nexcess\MAPPS\Modules\SupportUsers;
 use WP_CLI;
+use const Nexcess\MAPPS\PLUGIN_VERSION;
 
 /**
  * WP-CLI methods for Nexcess support.
@@ -26,151 +27,158 @@ class Support extends Command {
 	}
 
 	/**
+	 * Get Nexcess MAPPS MU plugin version.
+	 *
+	 * @return string
+	 */
+	protected function getNexcessMappsVersion() {
+		$plugins = get_mu_plugins();
+
+		if ( isset( $plugins['nexcess-mapps-bootstrap.php'] ) ) {
+			return PLUGIN_VERSION . '+dev';
+		}
+
+		return PLUGIN_VERSION;
+	}
+
+	/**
 	 * Prints information about this WordPress site.
+	 * Each section of information can be extended with extra information.
+	 * The filter 'Nexcess\MAPPS\Support\Details\section_<section_name>' can be used to add extra information.
+	 *
+	 * An example of the filter to add 'Hello: World' to the Site Information section.
+	 *
+	 * add_action( 'Nexcess\MAPPS\Support\Details\section_site_info', function( $data ) {
+	 *      return array_merge( $data, [ 'hello' => 'world' ] );
+	 * } );
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--format=<json>]
+	 * : Output format
 	 *
 	 * @since 1.0.0
 	 *
 	 * @global $wp_version
 	 * @global $wpdb
+	 *
+	 * @param mixed[] $args       Positional arguments.
+	 * @param mixed[] $assoc_args Associative arguments.
 	 */
-	public function details() {
+	public function details( $args, $assoc_args ) {
 		global $wp_version;
 		global $wpdb;
 
-		$this->line()
-			->line( $this->colorize( sprintf( '%%k%%7%s%%n', __( 'Nexcess Constants', 'nexcess-mapps' ) ) ) )
-			->line();
+		$sections = [];
 
-		$constants = [
-			'NEXCESS_MAPPS_SITE',
-			'NEXCESS_MAPPS_MWCH_SITE',
-			'NEXCESS_MAPPS_REGRESSION_SITE',
-			'NEXCESS_MAPPS_STAGING_SITE',
-			'NEXCESS_MAPPS_PLAN_NAME',
-			'NEXCESS_MAPPS_PACKAGE_LABEL',
-			'NEXCESS_MAPPS_ENDPOINT',
+		$sections[] = [
+			'Nexcess Must-Use Plugin Details',
+			[
+				/* Translators: %1$s is the must-use plugin version. */
+				__( 'Must-Use Plugin Version', 'nexcess-mapps' ) => $this->getNexcessMappsVersion(),
+			],
+			'nxmapps_plugin',
 		];
 
-		array_map( [ get_class(), 'format_constant_line' ], $constants );
+		$sections[] = [
+			'Nexcess Constants',
+			self::formatConstants( [
+				'NEXCESS_MAPPS_SITE',
+				'NEXCESS_MAPPS_MWCH_SITE',
+				'NEXCESS_MAPPS_REGRESSION_SITE',
+				'NEXCESS_MAPPS_STAGING_SITE',
+				'NEXCESS_MAPPS_PLAN_NAME',
+				'NEXCESS_MAPPS_PACKAGE_LABEL',
+				'NEXCESS_MAPPS_ENDPOINT',
+				'NEXCESS_MAPPS_TOKEN',
+			] ),
+			'constants',
+		];
 
-		self::format_line(
-			/* Translators: %1$s will display text for 'not set' or 'hidden for security'. */
-			__( 'NEXCESS_MAPPS_TOKEN: %1$s', 'nexcess-mapps' ),
-			defined( 'NEXCESS_MAPPS_TOKEN' )
-				? '%G' . _x( '<hidden for security>', 'hidden API token', 'nexcess-mapps' )
-				: '%R' . _x( '<not set>', 'displayed text when a constant is not defined', 'nexcess-mapps' ),
-			'%_'
-		);
+		$sections[] = [
+			'Environment Settings',
+			[
+				'Debug Mode'              => defined( 'WP_DEBUG' ) && WP_DEBUG,
+				'Server Name'             => gethostname(),
+				'IP'                      => gethostbyname( php_uname( 'n' ) ),
+				'OS Version'              => self::get_os_version(),
+				''                        => '',
+				'Environment type'        => wp_get_environment_type(),
+				'WP Version'              => $wp_version,
+				'PHP Version (WP)'        => phpversion(),
+				'PHP Memory Limit'        => ini_get( 'memory_limit' ),
+				'PHP Upload Max Filesize' => ini_get( 'upload_max_filesize' ),
+				'MySQL Version'           => $wpdb->get_var( 'SELECT VERSION()' ),
+			],
+			'environment',
+		];
 
-		$this->line()
-			->line( $this->colorize( sprintf( '%%k%%7%s%%n', __( 'Environment Settings', 'nexcess-mapps' ) ) ) )
-			->line();
+		$sections[] = [
+			'WordPress Configuration',
+			[
+				'WP Memory Limit (WP_MEMORY_LIMIT)'     => WP_MEMORY_LIMIT,
+				'Absolute Path (ABSPATH)'               => ABSPATH,
+				'WP Content Directory (WP_CONTENT_DIR)' => WP_CONTENT_DIR,
+				'WP Uploads Directory'                  => wp_get_upload_dir()['basedir'],
+				'WPLANG'                                => defined( 'WPLANG' ) && WPLANG ? WPLANG : 'en_US',
+				'WordPress Multisite'                   => is_multisite(),
+			],
+			'wp_info',
+		];
 
-		self::format_boolean_line( defined( 'WP_DEBUG' ) && WP_DEBUG, __( 'Debug Mode', 'nexcess-mapps' ) );
+		$sections[] = [
+			'Site Information',
+			[
+				'Home URL'            => get_home_url(),
+				'Site URL'            => site_url(),
+				'Admin Email'         => get_option( 'admin_email' ),
+				'Permalink Structure' => get_option( 'permalink_structure' ) ? str_replace( '%', '%%', get_option( 'permalink_structure' ) ) : 'Default',
+			],
+			'site_info',
+		];
 
-		$this->line();
+		$cache_config = wp_parse_args( $this->getCacheConfiguration( $this->pageCache->getActivePageCachePlugins() ), [
+			'enabled'  => 'Disabled',
+			'provider' => '',
+			'htaccess' => '',
+		] );
 
-		/* Translators: %1$s is the server's host name. */
-		self::format_line( __( 'Server Name: %1$s', 'nexcess-mapps' ), gethostname(), '%_' );
-		/* Translators: %1$s is the Site's IP Address. */
-		self::format_line( __( 'IP: %1$s', 'nexcess-mapps' ), gethostbyname( php_uname( 'n' ) ), '%_' );
-		/* Translators: %1$s is server's Operating System Version. */
-		self::format_line( __( 'OS Version: %1$s', 'nexcess-mapps' ), self::get_os_version(), '%_' );
+		$sections[] = [
+			'Cache Configuration',
+			[
+				'Page Cache'                 => $cache_config['enabled'],
+				'Page Cache Provider'        => $cache_config['provider'],
+				'Page Cache .htaccess Rules' => $cache_config['htaccess'],
+				'Object Cache Provider'      => $this->getObjectCacheProvider(),
+			],
+			'page_cache',
+		];
 
-		$this->line();
-
-		/* Translators: %1$s is the current WordPress environment type. */
-		self::format_line( __( 'Environment type: %1$s', 'nexcess-mapps' ), wp_get_environment_type(), '%_' );
-		/* Translators: %1$s is the site's WordPress version. */
-		self::format_line( __( 'WP Version: %1$s', 'nexcess-mapps' ), $wp_version, '%_' );
-		/* Translators: %1$s is the PHP version defined used the site. */
-		self::format_line( __( 'PHP Version (WP): %1$s', 'nexcess-mapps' ), phpversion(), '%_' );
-		/* Translators: %1$s is the PHP memory limit. */
-		self::format_line( __( 'PHP Memory Limit: %1$s', 'nexcess-mapps' ), ini_get( 'memory_limit' ), '%_' );
-		/* Translators: %1$s is the PHP upload max file size. */
-		self::format_line( __( 'PHP Upload Max Filesize: %1$s', 'nexcess-mapps' ), ini_get( 'upload_max_filesize' ), '%_' );
-		/* Translators: %1$s is the MySQL version. */
-		self::format_line( __( 'MySQL Version: %1$s', 'nexcess-mapps' ), $wpdb->get_var( 'SELECT VERSION()' ), '%_' );
-
-		$this->line()
-			->line( $this->colorize( sprintf( '%%k%%7%s%%n', __( 'WordPress Configuration', 'nexcess-mapps' ) ) ) )
-			->line();
-
-		/* Translators: %1$s is the memory limit for individual requests used by WordPress. */
-		self::format_line( __( 'WP Memory Limit (WP_MEMORY_LIMIT): %1$s', 'nexcess-mapps' ), WP_MEMORY_LIMIT, '%_' );
-		/* Translators: %1$s is the absolute file path to WordPress. */
-		self::format_line( __( 'Absolute Path (ABSPATH): %1$s', 'nexcess-mapps' ), ABSPATH, '%_' );
-		/* Translators: %1$s is the value of WP_CONTENT_DIR. */
-		self::format_line( __( 'WP Content Directory (WP_CONTENT_DIR): %1$s', 'nexcess-mapps' ), WP_CONTENT_DIR, '%_' );
-		/* Translators: %1$s is the value of WP_CONTENT_DIR. */
-		self::format_line( __( 'WP Uploads Directory: %1$s', 'nexcess-mapps' ), wp_get_upload_dir()['basedir'], '%_' );
-		/* Translators: %1$s is the language defined by WordPress. Will default to 'en_US' if not defined. */
-		self::format_line( __( 'WPLANG: %1$s', 'nexcess-mapps' ), defined( 'WPLANG' ) && WPLANG ? WPLANG : 'en_US', '%_' );
-		self::format_boolean_line( is_multisite(), __( 'WordPress Multisite', 'nexcess-mapps' ) );
-
-		$this->line()
-			->line( $this->colorize( sprintf( '%%k%%7%s%%n', __( 'Site Information', 'nexcess-mapps' ) ) ) )
-			->line();
-
-		/* Translators: %1$s is the site's home url. */
-		self::format_line( __( 'Home URL: %1$s', 'nexcess-mapps' ), get_home_url(), '%_' );
-		/* Translators: %1$s is the site's url. */
-		self::format_line( __( 'Site URL: %1$s', 'nexcess-mapps' ), site_url(), '%_' );
-		/* Translators: %1$s is the admin email address. */
-		self::format_line( __( 'Admin Email: %1$s', 'nexcess-mapps' ), get_option( 'admin_email' ), '%_' );
-
-		$permalink_structure = get_option( 'permalink_structure' ) ? get_option( 'permalink_structure' ) : 'Default';
-		/* Translators: %1$s is the site's permalink structure. */
-		$this->line( sprintf( __( 'Permalink Structure: %1$s', 'nexcess-mapps' ), $permalink_structure ) )
-			->line()
-			->line( $this->colorize( sprintf( '%%k%%7%s%%n', __( 'Cache Configuration', 'nexcess-mapps' ) ) ) )
-			->line();
-
-		$page_cache_plugins = $this->pageCache->getActivePageCachePlugins();
-		if ( $this->pageCache->isPageCacheEnabled() ) {
-			// Using the bundled page cache.
-			self::format_boolean_line( true, __( 'Page Cache', 'nexcess-mapps' ) );
-			$htaccess_valid = $this->pageCache->isHtaccessSectionValid();
-			self::format_line(
-				/* Translators: %1$s is the plugin provider, either 'Bundled', or a comma separated list of plugins. */
-				__( 'Page Cache Provider: %1$s', 'nexcess-mapps' ),
-				__( 'Bundled', 'nexcess-mapps' ),
-				'%_'
-			);
-			self::format_line(
-				/* Translators: %1$s is the string indicating valid or invalid. */
-				__( 'Page Cache .htaccess Rules: %1$s', 'nexcess-mapps' ),
-				$htaccess_valid ? __( 'Valid', 'nexcess-mapps' ) : __( 'Invalid', 'nexcess-mapps' ),
-				$htaccess_valid ? '%G' : '%R'
-			);
-		} elseif ( $page_cache_plugins ) {
-			// Using a page cache plugin.
-			self::format_boolean_line( true, __( 'Page Cache', 'nexcess-mapps' ) );
-			self::format_line(
-				/* Translators: %1$s is the plugin provider, either 'Bundled', or a comma separated list of plugins. */
-				__( 'Page Cache Provider: %1$s', 'nexcess-mapps' ),
-				implode( ', ', $page_cache_plugins ),
-				'%_'
-			);
-			// If more than one page cache providers are found, report a warning.
-			if ( count( $page_cache_plugins ) > 1 ) {
-				$this->warning( __( 'More than one page cache plugin appears to be active! This could cause unexpected behavior.', 'nexcess-mapps' ) );
+		if ( isset( $assoc_args['format'] ) && 'json' === $assoc_args['format'] ) {
+			$data = [];
+			foreach ( $sections as $section ) {
+				$data[ $section[2] ] = $section[1];
+			}
+			$json_data = wp_json_encode( $data );
+			if ( $json_data ) {
+				WP_CLI::line( $json_data );
 			}
 		} else {
-			// Page cache disabled.
-			self::format_boolean_line( false, __( 'Page Cache', 'nexcess-mapps' ) );
+			foreach ( $sections as $section ) {
+				self::section( $section[0], $section[1], $section[2] );
+			}
 		}
 
-		$this->line();
-		/* Translators: %1$s is the caching provider as reported by wp cache type. (e.g. Redis, Memcached, etc.) */
-		self::format_line( __( 'Object Cache Provider: %1$s', 'nexcess-mapps' ), $this->getObjectCacheProvider(), '%_' );
-		$this->line();
+		if ( isset( $cache_config['plugins'] ) && count( $cache_config['plugins'] ) > 1 ) {
+			$this->warning( 'More than one page cache plugin appears to be active! This could cause unexpected behavior.' );
+		}
 	}
 
 	/**
 	 * Create a new, temporary support user.
 	 *
 	 * @alias support-user
+	 *
 	 * @subcommand user
 	 *
 	 * @throws \Exception If the user could not be created.
@@ -178,91 +186,131 @@ class Support extends Command {
 	public function supportUser() {
 		$password = wp_generate_password();
 
-		try {
-			$user_id = SupportUsers::createSupportUser( [
-				'user_pass' => $password,
-			] );
-			$user    = get_user_by( 'id', $user_id );
+		$user_id = SupportUsers::createSupportUser( [ 'user_pass' => $password ] );
+		$user    = get_user_by( 'id', $user_id );
 
-			if ( ! $user ) {
-				throw new \Exception( sprintf( 'Could not find user with ID %d', $user_id ) );
-			}
-		} catch ( \Exception $e ) {
-			return $this->error( 'Something went wrong creating a support user: ' . $e->getMessage() );
+		if ( ! $user ) {
+			return $this->error( 'Something went wrong creating a support user, please try again.' );
 		}
 
-		$this->success( 'A new support user has been created:' )
-			->line()
-			->line( $this->colorize( "\t%Wurl:%N " ) . wp_login_url() )
-			->line( $this->colorize( "\t%Wusername:%N {$user->user_login}" ) )
-			->line( $this->colorize( "\t%Wpassword:%N " ) . $password )
-			->line()
-			->line( 'This user will automatically expire in 72 hours. You may also remove it manually by running:' )
-			->line( $this->colorize( "\t%c$ wp user delete {$user->ID}%n" ) );
+		$this->success( 'A new support user has been created!' )->line();
+
+		self::output( 'URL     ', wp_login_url(), 'W' );
+		self::output( 'Username', $user->user_login, 'W' );
+		self::output( 'Password', $password, 'W' );
+
+		$this->line()->line( 'This user will automatically expire in 72 hours. You may also remove it manually by running:' )->line();
+		$this->line( $this->colorize( "   %c wp user delete {$user->ID} --network --reassign=1%n" ) )->line();
 	}
 
 	/**
 	 * Serves as a shorthand wrapper for WP_CLI::line() combined with WP_CLI::colorize().
 	 *
 	 * @since 1.0.0
+	 *
 	 * @access protected
+	 *
 	 * @static
 	 *
 	 * @param string $text        Base text with specifier.
 	 * @param mixed  $replacement Replacement text used for sprintf().
 	 * @param string $color       Optional. Color code. See WP_CLI::colorize(). Default empty.
 	 */
-	protected static function format_line( $text, $replacement, $color = '' ) {
+	protected static function outputLine( $text, $replacement, $color = '' ) {
+		$color = empty( $color ) ? '' : '%' . $color;
 		WP_CLI::line( sprintf( $text, WP_CLI::colorize( $color . $replacement . '%N' ) ) );
 	}
 
 	/**
-	 * Helper function to format the output of a boolean variable.
+	 * Output two blank lines and a section header.
 	 *
-	 * @since 1.4.0
-	 * @access protected
-	 * @static
-	 *
-	 * @param bool   $enabled      Whether the variable is enabled or not.
-	 * @param string $display_name Display name for the variable.
+	 * @param string $text Section header text.
 	 */
-	protected static function format_boolean_line( $enabled, $display_name ) {
-		self::format_line(
-			sprintf( '%s: %%s', $display_name ),
-			$enabled ? __( 'Enabled', 'nexcess-mapps' ) : __( 'Disabled', 'nexcess-mapps' ),
-			$enabled ? '%G' : '%R'
-		);
+	protected static function header( $text ) {
+		WP_CLI::line();
+		WP_CLI::line( WP_CLI::colorize( sprintf( '%%k%%7 %s %%n', $text ) ) );
+		WP_CLI::line();
 	}
 
 	/**
-	 * Helper function to format the output of a constant.
+	 * Output a line of text with a label and a value.
 	 *
-	 * @since 1.4.0
-	 * @access protected
-	 * @static
-	 *
-	 * @param string $name Constant name.
+	 * @param string      $text  The text to output before the value.
+	 * @param string|bool $value The value to output.
+	 * @param string      $color A color token to pass to WP_CLI::colorize().
 	 */
-	protected static function format_constant_line( $name ) {
-		self::format_line(
-			/* Translators: %1$s is the name of the constant. %%s will be either 'Enabled' or 'Disabled' */
-			sprintf( __( '%1$s: %%s', 'nexcess-mapps' ), $name ),
-			defined( $name ) ? constant( $name ) : _x( '<not set>', 'displayed text when a constant is not defined', 'nexcess-mapps' ),
-			'%_'
-		);
+	protected static function output( $text, $value, $color = '' ) {
+		if ( is_bool( $value ) ) {
+			$value = $value ? 'Enabled' : 'Disabled';
+		}
+
+		self::outputLine( $text . ': %1$s', $value, $color );
+	}
+
+	/**
+	 * Output a section of debug values.
+	 *
+	 * @param string $header Header text.
+	 * @param array  $data   Data to output. Key is label, value is value.
+	 * @param string $key    Key to use for dynamic filter.
+	 */
+	protected static function section( $header, $data, $key ) {
+		// Out the header.
+		self::header( $header );
+
+		$data  = apply_filters( 'Nexcess\MAPPS\Support\Details\section_' . $key, $data );
+		$width = (int) max( array_map( function( $header ) {
+			return strlen( (string) $header );
+		}, array_keys( $data ) ) );
+
+		// Go through the array and output each Label: Value pair.
+		foreach ( $data as $label => $value ) {
+			// If both label & value are blank, then output an empty line.
+			if ( '' === $label && '' === $value ) {
+				WP_CLI::line();
+			} else {
+				// Out the line.
+				$label = str_pad( $label, $width + 1, ' ', STR_PAD_RIGHT );
+				self::output( $label, $value );
+
+			}
+		}
+	}
+
+	/**
+	 * Convert an array of constants into a useful array of values.
+	 *
+	 * @param array $constants Array of constants.
+	 *
+	 * @return array Array of constants, keyed by name, value is value or string.
+	 */
+	protected static function formatConstants( $constants ) {
+		$return = [];
+		foreach ( $constants as $name ) {
+			// Don't want to leak API keys.
+			if ( 'NEXCESS_MAPPS_TOKEN' === $name ) {
+				$return[ $name ] = defined( 'NEXCESS_MAPPS_TOKEN' ) ? '%K<hidden for security>' : '%R<not set>';
+			} else {
+				$return[ $name ] = defined( $name ) ? constant( $name ) : '<not set>';
+			}
+		}
+
+		return $return;
 	}
 
 	/**
 	 * Retrieve and process the details for the underlying Operating System.
 	 *
 	 * @since 1.4.0
+	 *
 	 * @access protected
+	 *
 	 * @static
 	 *
 	 * @return string The OS version or the string 'Unknown' if unable to read or parse config file.
 	 */
 	protected static function get_os_version() {
-		$name = _x( 'Unknown', 'Unknown Operating System Version', 'nexcess-mapps' );
+		$name = 'Unknown';
 
 		if ( is_file( '/etc/os-release' ) && is_readable( '/etc/os-release' ) ) {
 			$os_details = parse_ini_file( '/etc/os-release' );
@@ -273,6 +321,33 @@ class Support extends Command {
 		}
 
 		return $name;
+	}
+
+	/**
+	 * Get the details for the cache configuration.
+	 *
+	 * @param array $page_cache_plugins Array of page cache plugins.
+	 *
+	 * @return array Array of details.
+	 */
+	protected function getCacheConfiguration( $page_cache_plugins ) {
+		if ( $this->pageCache->isPageCacheEnabled() ) {
+			return [
+				'enabled'  => 'Enabled',
+				'provider' => 'Bundled',
+				'htaccess' => $this->pageCache->isHtaccessSectionValid() ? '%GValid' : '%RInvalid',
+			];
+		}
+
+		if ( $page_cache_plugins ) {
+			return [
+				'enabled'  => 'Enabled',
+				'provider' => implode( ', ', $page_cache_plugins ),
+				'plugins'  => $page_cache_plugins,
+			];
+		}
+
+		return [ 'enabled' => 'Disabled' ];
 	}
 
 	/**

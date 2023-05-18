@@ -5,6 +5,7 @@ namespace Nexcess\MAPPS\Services;
 use Nexcess\MAPPS\Concerns\MakesHttpRequests;
 use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
 use Nexcess\MAPPS\Settings;
+use Nexcess\MAPPS\Support\CacheRemember;
 
 class FeatureFlags {
 	use MakesHttpRequests;
@@ -129,6 +130,15 @@ class FeatureFlags {
 	}
 
 	/**
+	 * Collect the cohort assignments which are available for this site.
+	 *
+	 * @return array
+	 */
+	public function getCohorts() {
+		return (array) $this->getOption()->get( 'cohorts', [] );
+	}
+
+	/**
 	 * Get the cohort ID for this site for the given $flag.
 	 *
 	 * For the first version of feature flags, each site will roll a D100 for each flag, then store
@@ -158,7 +168,7 @@ class FeatureFlags {
 	 */
 	protected function getCurrentFeatureFlags() {
 		try {
-			$flags = remember_transient( self::CACHE_KEY, function () {
+			$flags = CacheRemember::remember_transient( self::CACHE_KEY, function () {
 				$response = wp_remote_get( $this->settings->feature_flags_url );
 				$json     = json_decode( $this->validateHttpResponse( $response, 200 ), true );
 				$flags    = isset( $json['flags'] ) ? $json['flags'] : [];
@@ -167,9 +177,9 @@ class FeatureFlags {
 				$this->getOption()->set( 'flags', $flags )->save();
 
 				return $flags;
-			}, DAY_IN_SECONDS );
+			}, 6 * HOUR_IN_SECONDS );
 		} catch ( \Exception $e ) {
-			$flags = $this->getOption()->flags ?: [];
+			$flags = $this->getOption()->get( 'flags', [] );
 
 			// Seed the cache with our backup value for a short time.
 			set_transient( self::CACHE_KEY, $flags, 15 * MINUTE_IN_SECONDS );

@@ -9,7 +9,7 @@
 	<h2 class="mapps-storebuilder-header__headline"><?php esc_html_e( 'Site Dashboard', 'nexcess-mapps' ); ?></h2>
 	<ul class="mapps-storebuilder-header__nav">
 		<li class="mapps-storebuilder-header__nav-link">
-			<a class="mapps-storebuilder-header__action" href="<?php echo esc_url( admin_url( 'admin.php?page=storebuilderapp' ) ); ?>">
+			<a class="mapps-storebuilder-header__action" href="<?php echo esc_url( admin_url( 'admin.php?page=sitebuilder-store-details' ) ); ?>">
 				<?php esc_html_e( 'Store Setup', 'nexcess-mapps' ); ?>
 			</a>
 		</li>

@@ -131,7 +131,6 @@ class Jetpack extends Integration {
 	public static function getEligiblePlans() {
 		return [
 			Settings::PLAN_BASIC,
-			Settings::PLAN_BEGINNER,
 			Settings::PLAN_BUSINESS,
 			Settings::PLAN_FREELANCE,
 			Settings::PLAN_PERSONAL,

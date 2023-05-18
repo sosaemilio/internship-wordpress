@@ -2,8 +2,8 @@
 
 namespace Nexcess\MAPPS\Commands;
 
-use Nexcess\MAPPS\Exceptions\WPErrorException;
 use Nexcess\MAPPS\Integrations\WooCommerceAutomatedTesting as Integration;
+use StellarWP\PluginFramework\Exceptions\WPErrorException;
 
 /**
  * Commands for the Nexcess WooCommerce Automated Testing platform.
@@ -40,6 +40,8 @@ class WooCommerceAutomatedTesting extends Command {
 
 		try {
 			$this->integration->forceEnableOrDisable( false );
+			// Remove test product and user.
+			$this->integration->deleteTestProductAdminUser();
 		} catch ( WPErrorException $e ) {
 			$this->error( sprintf( 'Unable to deactivate the site within the WooCommerce Automated Testing platform: %s', $e->getMessage() ) );
 		}
@@ -63,6 +65,8 @@ class WooCommerceAutomatedTesting extends Command {
 			if ( $this->integration->getOption()->api_key ) {
 				// Re-enable a site if it's already been registered.
 				$this->integration->forceEnableOrDisable( true );
+				// Re-add the test product and user for WCAT.
+				$this->integration->addTestProductAdminUser();
 			} else {
 				// Register the site.
 				$this->integration->registerSite();
@@ -103,5 +107,16 @@ class WooCommerceAutomatedTesting extends Command {
 			__( 'Site has been updated within the WooCommerce Automated Testing platform! (ID: %1$s)', 'nexcess-mapps' ),
 			$this->integration->getOption()->site_id
 		) );
+	}
+
+	/**
+	 * Show status of WCAT.
+	 */
+	public function status() {
+		if ( $this->integration->getOption()->get( 'enable_wcat' ) ) {
+			$this->log( 'WooCommerce Automated Testing Status: Enabled.' );
+		} else {
+			$this->log( 'WooCommerce Automated Testing Status: Disabled.' );
+		}
 	}
 }

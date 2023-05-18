@@ -6,19 +6,18 @@
             "version_normalized": "1.0.1.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/bradp/where.git",
+                "url": "https://github.com/liquidweb/where.git",
                 "reference": "78ccbd5fd3ecbf7f03356c88b842e95f98e58fca"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/bradp/where/zipball/78ccbd5fd3ecbf7f03356c88b842e95f98e58fca",
+                "url": "https://api.github.com/repos/liquidweb/where/zipball/78ccbd5fd3ecbf7f03356c88b842e95f98e58fca",
                 "reference": "78ccbd5fd3ecbf7f03356c88b842e95f98e58fca",
                 "shasum": ""
             },
             "time": "2021-08-25T16:54:43+00:00",
             "type": "wordpress-plugin",
             "installation-source": "dist",
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "GPL-2.0-or-later"
             ],
@@ -30,8 +29,7 @@
             ],
             "description": "A WordPress plugin to display your site's environment type in the admin bar",
             "support": {
-                "issues": "https://github.com/bradp/where/issues",
-                "source": "https://github.com/bradp/where/tree/1.0.1"
+                "source": "https://github.com/liquidweb/where/tree/1.0.1"
             },
             "install-path": "../bradp/where"
         },
@@ -191,17 +189,17 @@
         },
         {
             "name": "cweagans/composer-patches",
-            "version": "1.7.2",
-            "version_normalized": "1.7.2.0",
+            "version": "1.7.3",
+            "version_normalized": "1.7.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cweagans/composer-patches.git",
-                "reference": "e9969cfc0796e6dea9b4e52f77f18e1065212871"
+                "reference": "e190d4466fe2b103a55467dfa83fc2fecfcaf2db"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cweagans/composer-patches/zipball/e9969cfc0796e6dea9b4e52f77f18e1065212871",
-                "reference": "e9969cfc0796e6dea9b4e52f77f18e1065212871",
+                "url": "https://api.github.com/repos/cweagans/composer-patches/zipball/e190d4466fe2b103a55467dfa83fc2fecfcaf2db",
+                "reference": "e190d4466fe2b103a55467dfa83fc2fecfcaf2db",
                 "shasum": ""
             },
             "require": {
@@ -212,7 +210,7 @@
                 "composer/composer": "~1.0 || ~2.0",
                 "phpunit/phpunit": "~4.6"
             },
-            "time": "2022-01-25T19:21:20+00:00",
+            "time": "2022-12-20T22:53:13+00:00",
             "type": "composer-plugin",
             "extra": {
                 "class": "cweagans\\Composer\\Patches"
@@ -236,7 +234,7 @@
             "description": "Provides a way to patch Composer packages.",
             "support": {
                 "issues": "https://github.com/cweagans/composer-patches/issues",
-                "source": "https://github.com/cweagans/composer-patches/tree/1.7.2"
+                "source": "https://github.com/cweagans/composer-patches/tree/1.7.3"
             },
             "install-path": "../cweagans/composer-patches"
         },
@@ -362,17 +360,17 @@
         },
         {
             "name": "liquidweb/nexcess-mapps-dashboard",
-            "version": "v1.4.0",
-            "version_normalized": "1.4.0.0",
+            "version": "v1.4.1",
+            "version_normalized": "1.4.1.0",
             "source": {
                 "type": "git",
                 "url": "git@github.com:liquidweb/nexcess-mapps-dashboard.git",
-                "reference": "bbf44574ecec6bfaa2763b30a542f9394afb6e97"
+                "reference": "67a9713cda84c2fc31463defd3b56125ee0440c1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/liquidweb/nexcess-mapps-dashboard/zipball/bbf44574ecec6bfaa2763b30a542f9394afb6e97",
-                "reference": "bbf44574ecec6bfaa2763b30a542f9394afb6e97",
+                "url": "https://api.github.com/repos/liquidweb/nexcess-mapps-dashboard/zipball/67a9713cda84c2fc31463defd3b56125ee0440c1",
+                "reference": "67a9713cda84c2fc31463defd3b56125ee0440c1",
                 "shasum": ""
             },
             "require-dev": {
@@ -380,9 +378,10 @@
                 "php": "^7.1",
                 "phpcompatibility/phpcompatibility-wp": "^2.0",
                 "phpunit/phpunit": "^6.5",
-                "wp-coding-standards/wpcs": "^2.1"
+                "wp-coding-standards/wpcs": "^2.1",
+                "yoast/phpunit-polyfills": "^1.0.1"
             },
-            "time": "2021-05-26T17:09:52+00:00",
+            "time": "2022-11-01T18:05:16+00:00",
             "type": "wordpress-plugin",
             "installation-source": "dist",
             "autoload-dev": {
@@ -410,54 +409,94 @@
             ],
             "description": "Allows Nexcess customers to self-install specific plugins.",
             "support": {
-                "source": "https://github.com/liquidweb/nexcess-mapps-dashboard/tree/v1.4.0",
+                "source": "https://github.com/liquidweb/nexcess-mapps-dashboard/tree/v1.4.1",
                 "issues": "https://github.com/liquidweb/nexcess-mapps-dashboard/issues"
             },
             "install-path": "../liquidweb/nexcess-mapps-dashboard"
         },
         {
-            "name": "liquidweb/woocommerce-upper-limits",
-            "version": "v1.0.3",
-            "version_normalized": "1.0.3.0",
+            "name": "moderntribe/wme-sitebuilder",
+            "version": "v0.6.1",
+            "version_normalized": "0.6.1.0",
             "source": {
                 "type": "git",
-                "url": "git@github.com:liquidweb/woocommerce-upper-limits.git",
-                "reference": "594dc658c309572a5968d5481b2ff974f0e1ba4e"
+                "url": "https://github.com/moderntribe/wme-sitebuilder.git",
+                "reference": "b0de1aecb7bae7bb1d668f9079494707c2fb96ad"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/liquidweb/woocommerce-upper-limits/zipball/594dc658c309572a5968d5481b2ff974f0e1ba4e",
-                "reference": "594dc658c309572a5968d5481b2ff974f0e1ba4e",
+                "url": "https://api.github.com/repos/moderntribe/wme-sitebuilder/zipball/b0de1aecb7bae7bb1d668f9079494707c2fb96ad",
+                "reference": "b0de1aecb7bae7bb1d668f9079494707c2fb96ad",
                 "shasum": ""
             },
-            "require-dev": {
-                "dealerdirect/phpcodesniffer-composer-installer": "^0.5",
-                "phpcompatibility/php-compatibility": "^9.1",
-                "phpunit/phpunit": "^6.2.3",
-                "stevegrunwell/runkit7-installer": "^1.1",
-                "woocommerce/woocommerce": "dev-master",
-                "wp-coding-standards/wpcs": "^1.0.0"
+            "require": {
+                "composer-runtime-api": "^2",
+                "composer/installers": "~1.0 || ^2.0",
+                "php": "^5.6 || ^7.0 || ^8.0",
+                "psr/log": "^1.1",
+                "stellarwp/container": "^0.1.1"
             },
-            "time": "2019-07-25T14:06:49+00:00",
-            "type": "wordpress-muplugin",
+            "require-dev": {
+                "dealerdirect/phpcodesniffer-composer-installer": "^0.7",
+                "friendsofphp/php-cs-fixer": "^3.12",
+                "phpcompatibility/phpcompatibility-wp": "^2.0",
+                "phpmd/phpmd": "^2.13",
+                "szepeviktor/phpstan-wordpress": "^0.7",
+                "wp-coding-standards/wpcs": "^2.1",
+                "wpackagist-plugin/woocommerce": ">=7.1",
+                "wpackagist-plugin/woocommerce-gateway-stripe": "6.4.1",
+                "wpackagist-plugin/woocommerce-paypal-payments": "1.9.0"
+            },
+            "time": "2023-03-24T15:12:05+00:00",
+            "type": "wordpress-plugin",
             "extra": {
                 "installer-paths": {
-                    "vendor/{$vendor}/{$name}": [
-                        "woocommerce/woocommerce"
+                    "external/wp-content/mu-plugins/{$name}/": [
+                        "type:wordpress-muplugin"
+                    ],
+                    "external/wp-content/plugins/{$name}/": [
+                        "type:wordpress-plugin"
+                    ],
+                    "external/wp-content/themes/{$name}/": [
+                        "type:wordpress-theme"
                     ]
                 }
             },
             "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Tribe\\WME\\Sitebuilder\\": "wme-sitebuilder/"
+                }
+            },
             "autoload-dev": {
-                "classmap": [
-                    "vendor/woocommerce/woocommerce/tests/framework"
-                ]
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
             },
             "scripts": {
-                "build": [
-                    "mkdir -p ./dist/woocommerce-upper-limits",
-                    "cp -r includes README.md woocommerce-upper-limits.php ./dist/woocommerce-upper-limits",
-                    "cd ./dist && zip -rmT woocommerce-upper-limits.zip woocommerce-upper-limits"
+                "build:plugin": [
+                    "bash bin/build wme-sitebuilder.zip"
+                ],
+                "fix:standards": [
+                    "phpcbf --cache",
+                    "php-cs-fixer fix -v --diff"
+                ],
+                "test": [
+                    "@test:all"
+                ],
+                "test:all": [
+                    "@test:standards",
+                    "@test:analysis"
+                ],
+                "test:analysis": [
+                    "phpstan analyse -c phpstan.neon.dist --memory-limit=768M"
+                ],
+                "test:coverage": [
+                    "phpdbg -qrr -d memory_limit=-1 ./wme-sitebuilder/vendor/bin/phpunit --coverage-html=tests/coverage --coverage-text --colors=always"
+                ],
+                "test:standards": [
+                    "phpcs --cache",
+                    "php-cs-fixer fix -v --diff --dry-run"
                 ]
             },
             "license": [
@@ -465,24 +504,71 @@
             ],
             "authors": [
                 {
-                    "name": "Liquid Web",
-                    "homepage": "https://www.liquidweb.com"
-                },
-                {
-                    "name": "Justin Sainton",
-                    "homepage": "https://zao.is"
-                },
-                {
-                    "name": "Steve Grunwell",
-                    "homepage": "https://stevegrunwell.com"
+                    "name": "Modern Tribe Incubator Team"
                 }
             ],
-            "description": "Create upper limits for store owners, limiting either the amount of products they can create, or orders they can take in a given month.",
+            "description": "Easily build and configure a site.",
             "support": {
-                "source": "https://github.com/liquidweb/woocommerce-upper-limits/tree/v1.0.3",
-                "issues": "https://github.com/liquidweb/woocommerce-upper-limits/issues"
+                "issues": "https://github.com/moderntribe/wme-sitebuilder/issues",
+                "source": "https://github.com/moderntribe/wme-sitebuilder"
             },
-            "install-path": "../liquidweb/woocommerce-upper-limits"
+            "install-path": "../moderntribe/wme-sitebuilder"
+        },
+        {
+            "name": "psr/container",
+            "version": "1.0.0",
+            "version_normalized": "1.0.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-fig/container.git",
+                "reference": "b7ce3b176482dbbc1245ebf52b181af44c2cf55f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-fig/container/zipball/b7ce3b176482dbbc1245ebf52b181af44c2cf55f",
+                "reference": "b7ce3b176482dbbc1245ebf52b181af44c2cf55f",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "time": "2017-02-14T16:28:37+00:00",
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0.x-dev"
+                }
+            },
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Psr\\Container\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PHP-FIG",
+                    "homepage": "http://www.php-fig.org/"
+                }
+            ],
+            "description": "Common Container Interface (PHP FIG PSR-11)",
+            "homepage": "https://github.com/php-fig/container",
+            "keywords": [
+                "PSR-11",
+                "container",
+                "container-interface",
+                "container-interop",
+                "psr"
+            ],
+            "support": {
+                "issues": "https://github.com/php-fig/container/issues",
+                "source": "https://github.com/php-fig/container/tree/master"
+            },
+            "install-path": "../psr/container"
         },
         {
             "name": "psr/log",
@@ -536,6 +622,217 @@
                 "source": "https://github.com/php-fig/log/tree/1.1.4"
             },
             "install-path": "../psr/log"
+        },
+        {
+            "name": "stellarwp/admin-notice",
+            "version": "v0.1.0",
+            "version_normalized": "0.1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/stellarwp/admin-notice.git",
+                "reference": "aa4bfd9eb08de2f8ad25779c4fff45f307a4ea84"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/stellarwp/admin-notice/zipball/aa4bfd9eb08de2f8ad25779c4fff45f307a4ea84",
+                "reference": "aa4bfd9eb08de2f8ad25779c4fff45f307a4ea84",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^5.6 | ^7.0 | ^8.0"
+            },
+            "require-dev": {
+                "assertwell/shellcheck": "^1.0",
+                "assertwell/wp-core-test-framework": "^0.2.0",
+                "php-stubs/wordpress-tests-stubs": "^5.8",
+                "stellarwp/coding-standards": "dev-develop",
+                "stevegrunwell/phpunit-markup-assertions": "^1.3",
+                "szepeviktor/phpstan-wordpress": "^1.0",
+                "yoast/phpunit-polyfills": "^1.0"
+            },
+            "time": "2022-04-22T23:04:48+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "StellarWP\\AdminNotice\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "StellarWP",
+                    "homepage": "https://stellarwp.com"
+                }
+            ],
+            "description": "An object-oriented interface around WordPress' admin notices",
+            "support": {
+                "issues": "https://github.com/stellarwp/admin-notice/issues",
+                "source": "https://github.com/stellarwp/admin-notice"
+            },
+            "install-path": "../stellarwp/admin-notice"
+        },
+        {
+            "name": "stellarwp/container",
+            "version": "v0.1.1",
+            "version_normalized": "0.1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/stellarwp/container.git",
+                "reference": "eb421de316b393bf0af37cf4adb68074832ab17d"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/stellarwp/container/zipball/eb421de316b393bf0af37cf4adb68074832ab17d",
+                "reference": "eb421de316b393bf0af37cf4adb68074832ab17d",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^5.6 | ^7.0 | ^8.0",
+                "psr/container": "~1.0.0"
+            },
+            "provide": {
+                "psr/container-implementation": "^1.0.0"
+            },
+            "require-dev": {
+                "league/climate": "^3.8",
+                "stellarwp/coding-standards": "dev-develop",
+                "szepeviktor/phpstan-wordpress": "^1.0",
+                "yoast/phpunit-polyfills": "^1.0"
+            },
+            "time": "2022-03-28T19:13:54+00:00",
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "StellarWP\\Container\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "StellarWP",
+                    "homepage": "https://stellarwp.com"
+                }
+            ],
+            "description": "A PSR-11 Dependency Injection (DI) container for use in WordPress codebases",
+            "support": {
+                "issues": "https://github.com/stellarwp/container/issues",
+                "source": "https://github.com/stellarwp/container"
+            },
+            "install-path": "../stellarwp/container"
+        },
+        {
+            "name": "stellarwp/plugin-framework",
+            "version": "v1.6.0",
+            "version_normalized": "1.6.0.0",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:stellarwp/plugin-framework.git",
+                "reference": "aedb820e6b2ba87095b7e3062b1cc82cda13fb5c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/stellarwp/plugin-framework/zipball/aedb820e6b2ba87095b7e3062b1cc82cda13fb5c",
+                "reference": "aedb820e6b2ba87095b7e3062b1cc82cda13fb5c",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^5.6 | ^7.0 | ^8.0",
+                "psr/log": "^1.1",
+                "stellarwp/admin-notice": "^0.1",
+                "stellarwp/container": "^0.1",
+                "stevegrunwell/wp-cache-remember": "^1.1",
+                "wp-cli/wp-config-transformer": "^1.3"
+            },
+            "require-dev": {
+                "assertwell/phpunit-global-state": "^0.2",
+                "assertwell/shellcheck": "^1.0",
+                "assertwell/wp-core-test-framework": "^0.2",
+                "mockery/mockery": "^1.3",
+                "php-stubs/wordpress-tests-stubs": "^6.1",
+                "stellarwp/coding-standards": "^1.0",
+                "stevegrunwell/phpunit-markup-assertions": "^1.3",
+                "stevegrunwell/runkit7-installer": "^1.2",
+                "szepeviktor/phpstan-wordpress": "^1.0",
+                "wp-cli/wp-cli": "^2.6",
+                "wpackagist-plugin/cache-enabler": "^1.8",
+                "wpackagist-plugin/hello-dolly": "*",
+                "yoast/phpunit-polyfills": "^1.0"
+            },
+            "time": "2023-05-15T16:46:45+00:00",
+            "bin": [
+                "bin/check-version.sh"
+            ],
+            "type": "library",
+            "extra": {
+                "installer-disable": true
+            },
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "StellarWP\\PluginFramework\\": "src/"
+                },
+                "files": [
+                    "src/Support/Compat.php"
+                ]
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "fix:standards": [
+                    "phpcbf",
+                    "php-cs-fixer fix -v --diff"
+                ],
+                "test": [
+                    "@test:all"
+                ],
+                "test:all": [
+                    "@test:unit",
+                    "@test:standards",
+                    "@test:analysis"
+                ],
+                "test:analysis": [
+                    "phpstan analyse -c phpstan.neon.dist --memory-limit=768M"
+                ],
+                "test:coverage": [
+                    "phpdbg -qrr -d memory_limit=-1 ./vendor/bin/phpunit --coverage-html=tests/coverage --coverage-text --colors=always"
+                ],
+                "test:shellcheck": [
+                    "shellcheck bin/*"
+                ],
+                "test:standards": [
+                    "phpcs --cache",
+                    "php-cs-fixer fix --config=vendor/stellarwp/coding-standards/src/php-cs-fixer.php -v --diff --dry-run"
+                ],
+                "test:unit": [
+                    "phpunit --testdox --colors=always"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "StellarWP",
+                    "homepage": "https://stellarwp.com"
+                }
+            ],
+            "description": "A framework for creating complex WordPress plugins",
+            "support": {
+                "issues": "https://github.com/stellarwp/plugin-framework/issues",
+                "source": "https://github.com/stellarwp/plugin-framework"
+            },
+            "install-path": "../stellarwp/plugin-framework"
         },
         {
             "name": "stellarwp/stellarwp-plugin-installer",
@@ -595,12 +892,12 @@
             "version_normalized": "0.2.0.0",
             "source": {
                 "type": "git",
-                "url": "https://github.com/stevegrunwell/wp-admin-tabbed-settings-pages.git",
+                "url": "https://github.com/liquidweb/wp-admin-tabbed-settings-pages.git",
                 "reference": "d8fbcce4bde4fbee623c659166b42bce0a7d09d8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/stevegrunwell/wp-admin-tabbed-settings-pages/zipball/d8fbcce4bde4fbee623c659166b42bce0a7d09d8",
+                "url": "https://api.github.com/repos/liquidweb/wp-admin-tabbed-settings-pages/zipball/d8fbcce4bde4fbee623c659166b42bce0a7d09d8",
                 "reference": "d8fbcce4bde4fbee623c659166b42bce0a7d09d8",
                 "shasum": ""
             },
@@ -614,7 +911,21 @@
             "time": "2020-08-27T17:20:05+00:00",
             "type": "wordpress-plugin",
             "installation-source": "dist",
-            "notification-url": "https://packagist.org/downloads/",
+            "scripts": {
+                "test": [
+                    "@test:all"
+                ],
+                "test:all": [
+                    "@test:unit",
+                    "@test:standards"
+                ],
+                "test:standards": [
+                    "phpcs"
+                ],
+                "test:unit": [
+                    "phpunit"
+                ]
+            },
             "license": [
                 "GPL-2.0-or-later"
             ],
@@ -626,36 +937,35 @@
             ],
             "description": "A polyfill for Trac #51086, bringing tabbed settings pages into WP-Admin.",
             "support": {
-                "issues": "https://github.com/stevegrunwell/wp-admin-tabbed-settings-pages/issues",
-                "source": "https://github.com/stevegrunwell/wp-admin-tabbed-settings-pages/tree/master"
+                "source": "https://github.com/liquidweb/wp-admin-tabbed-settings-pages/tree/v0.2.0"
             },
             "install-path": "../stevegrunwell/wp-admin-tabbed-settings-pages"
         },
         {
             "name": "stevegrunwell/wp-cache-remember",
-            "version": "v1.1.1",
-            "version_normalized": "1.1.1.0",
+            "version": "v1.1.2",
+            "version_normalized": "1.1.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/stevegrunwell/wp-cache-remember.git",
-                "reference": "f37b8e79d9cb05f5fd0e8035b0ffecbb1ded182e"
+                "reference": "7ad1da18b1cab08e638539176961f71c2fff2ac7"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/stevegrunwell/wp-cache-remember/zipball/f37b8e79d9cb05f5fd0e8035b0ffecbb1ded182e",
-                "reference": "f37b8e79d9cb05f5fd0e8035b0ffecbb1ded182e",
+                "url": "https://api.github.com/repos/stevegrunwell/wp-cache-remember/zipball/7ad1da18b1cab08e638539176961f71c2fff2ac7",
+                "reference": "7ad1da18b1cab08e638539176961f71c2fff2ac7",
                 "shasum": ""
             },
             "require": {
-                "composer/installers": "^1.0",
+                "composer/installers": "^1.0||^2.0",
                 "php": ">=5.2"
             },
             "require-dev": {
-                "dealerdirect/phpcodesniffer-composer-installer": "^0.4.4",
-                "wimg/php-compatibility": "^8.1",
-                "wp-coding-standards/wpcs": "^0.14"
+                "dealerdirect/phpcodesniffer-composer-installer": "^0.5||^0.6||^0.7",
+                "phpcompatibility/phpcompatibility-wp": "^2.1",
+                "wp-coding-standards/wpcs": "^2.2"
             },
-            "time": "2018-06-14T05:10:34+00:00",
+            "time": "2022-07-08T18:13:53+00:00",
             "type": "wordpress-muplugin",
             "installation-source": "dist",
             "autoload": {
@@ -689,17 +999,17 @@
         },
         {
             "name": "wp-cli/wp-config-transformer",
-            "version": "v1.3.0",
-            "version_normalized": "1.3.0.0",
+            "version": "v1.3.3",
+            "version_normalized": "1.3.3.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/wp-cli/wp-config-transformer.git",
-                "reference": "2e90eefc6b8f5166f53aa5414fd8f1a572164ef1"
+                "reference": "b1a6a013e4a8c74b29ba185368b78a140b3268da"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/wp-cli/wp-config-transformer/zipball/2e90eefc6b8f5166f53aa5414fd8f1a572164ef1",
-                "reference": "2e90eefc6b8f5166f53aa5414fd8f1a572164ef1",
+                "url": "https://api.github.com/repos/wp-cli/wp-config-transformer/zipball/b1a6a013e4a8c74b29ba185368b78a140b3268da",
+                "reference": "b1a6a013e4a8c74b29ba185368b78a140b3268da",
                 "shasum": ""
             },
             "require": {
@@ -708,7 +1018,7 @@
             "require-dev": {
                 "wp-cli/wp-cli-tests": "^3.1"
             },
-            "time": "2022-01-10T18:37:52+00:00",
+            "time": "2023-04-26T19:51:31+00:00",
             "type": "library",
             "extra": {
                 "patches_applied": {
@@ -735,30 +1045,9 @@
             "homepage": "https://github.com/wp-cli/wp-config-transformer",
             "support": {
                 "issues": "https://github.com/wp-cli/wp-config-transformer/issues",
-                "source": "https://github.com/wp-cli/wp-config-transformer/tree/v1.3.0"
+                "source": "https://github.com/wp-cli/wp-config-transformer/tree/v1.3.3"
             },
             "install-path": "../wp-cli/wp-config-transformer"
-        },
-        {
-            "name": "wpackagist-plugin/varnish-http-purge",
-            "version": "5.1.0",
-            "version_normalized": "5.1.0.0",
-            "source": {
-                "type": "svn",
-                "url": "https://plugins.svn.wordpress.org/varnish-http-purge/",
-                "reference": "tags/5.1.0"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://downloads.wordpress.org/plugin/varnish-http-purge.5.1.0.zip"
-            },
-            "require": {
-                "composer/installers": "^1.0 || ^2.0"
-            },
-            "type": "wordpress-plugin",
-            "installation-source": "dist",
-            "homepage": "https://wordpress.org/plugins/varnish-http-purge/",
-            "install-path": "../wpackagist-plugin/varnish-http-purge"
         }
     ],
     "dev": false,

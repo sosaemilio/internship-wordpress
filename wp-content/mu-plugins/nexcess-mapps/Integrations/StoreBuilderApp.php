@@ -6,6 +6,7 @@
 
 namespace Nexcess\MAPPS\Integrations;
 
+use Nexcess\MAPPS\Concerns\CollectsTelemetryData;
 use Nexcess\MAPPS\Concerns\HasAdminPages;
 use Nexcess\MAPPS\Concerns\HasAssets;
 use Nexcess\MAPPS\Concerns\HasHooks;
@@ -25,10 +26,13 @@ use Nexcess\MAPPS\Settings;
 use const Nexcess\MAPPS\PLUGIN_URL;
 
 class StoreBuilderApp extends Integration {
+	use CollectsTelemetryData;
 	use HasAdminPages;
 	use HasAssets;
 	use HasHooks;
 	use HasWordPressDependencies;
+
+	const TELEMETRY_DATA_STORE_NAME = 'nexcess_mapps_storebuilder_telemetry';
 
 	/**
 	 * @var \Nexcess\MAPPS\Settings
@@ -104,57 +108,28 @@ class StoreBuilderApp extends Integration {
 	protected function getActions() {
 		// phpcs:disable WordPress.Arrays
 		return [
-			[ 'admin_init',              [ $this, 'registerAdminColorScheme' ] ],
-			[ 'admin_menu',              [ $this, 'registerMenuPage'], -1 ],
-			[ 'user_register',           [ $this, 'setDefaultAdminColorScheme'] ],
-			[ 'validate_password_reset', [ $this, 'autoLoginFromInitialResetEmail' ], 1, 2 ],
+			[ 'admin_init',                 [ $this, 'registerAdminColorScheme' ] ],
+			[ 'admin_menu',                 [ $this, 'registerMenuPage' ], -1 ],
+			[ 'user_register',              [ $this, 'setDefaultAdminColorScheme' ] ],
+			[ 'wme_event_wizard_started',   [ $this, 'captureWizardStarted' ] ],
+			[ 'wme_event_wizard_completed', [ $this, 'captureWizardCompleted' ] ],
+			[ 'wme_event_wizard_telemetry', [ $this, 'captureWizardEvents' ], 10, 3 ],
 		];
 		// phpcs:enable WordPress.Arrays
 	}
 
 	/**
-	 * Auto-log the user in if they are coming from the original password reset email.
-	 * This allows us to skip the inital "Enter your new password below or generate one."
-	 * and handle that in the first time set up wizard.
+	 * Retrieve all filters for the integration.
 	 *
-	 * @param \WP_Error          $errors WP Error object.
-	 * @param \WP_User|\WP_Error $user   WP_User object if the login and reset key match. WP_Error object otherwise.
+	 * @return array[]
 	 */
-	public function autoLoginFromInitialResetEmail( $errors, $user ) {
-		// Safety check. Make sure we have the expected types of data + no errors.
-		// The password reset link we generate for the welcome email gets the additional
-		// param of "app=storebuilder", so we can easily differentiate between that and
-		// normal reset password links.
-		if (
-			! isset( $_GET['app'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			|| ( 'storebuilder' !== $_GET['app'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			|| is_wp_error( $user )
-			|| ! is_wp_error( $errors )
-			|| ! empty( $errors->errors )
-			|| ! empty( $errors->error_data )
-			|| ( get_option( 'admin_email' ) !== $user->data->user_email ) // Only want this to happen to the original admin user.
-		) {
-			return;
-		}
-
-		// Generate a new password for the user and update it.
-		$new_pass = wp_generate_password( 24, true, true );
-		wp_set_password( $new_pass, $user->ID );
-
-		$signed_on = wp_signon( [
-			'user_login'    => $user->data->user_login,
-			'user_password' => $new_pass,
-			'remember'      => false,
-		] );
-
-		// Bail out if we didn't sign the user in.
-		if ( is_wp_error( $signed_on ) ) {
-			return;
-		}
-
-		// Send the user to the first time set up wizard.
-		wp_safe_redirect( admin_url( '?page=' . self::ADMIN_MENU_SLUG ) );
-		exit;
+	protected function getFilters() {
+		// phpcs:disable WordPress.Arrays
+		return [
+			// Collect the Started/Completed Status of Wizards for Telemetry.
+			[ 'nexcess_mapps_telemetry_report', [ $this, 'collectSetupData' ] ],
+		];
+		// phpcs:enable WordPress.Arrays
 	}
 
 	/**
@@ -238,5 +213,54 @@ class StoreBuilderApp extends Integration {
 		$this->renderTemplate('storebuilderapp-setup', [
 			'settings' => $this->settings,
 		]);
+	}
+
+	/**
+	 * Helper function to capture started events emitted by the wizards.
+	 *
+	 * @param string $wizard Name of the Wizard.
+	 */
+	public function captureWizardStarted( $wizard ) {
+		$this->captureWizardEvents( $wizard, 'started', gmdate( 'c' ) );
+	}
+
+	/**
+	 * Helper function to capture completion events emitted by the wizards.
+	 *
+	 * @param string $wizard Name of the Wizard.
+	 */
+	public function captureWizardCompleted( $wizard ) {
+		$this->captureWizardEvents( $wizard, 'completed', gmdate( 'c' ) );
+	}
+
+	/**
+	 * Collect and save events emitted by the wizards.
+	 *
+	 * @param string $wizard Name of the Wizard.
+	 * @param string $event  Captured event, typically 'started', 'completed', etc.
+	 * @param mixed  $data   Data to be stored along with the event.
+	 */
+	public function captureWizardEvents( $wizard, $event, $data ) {
+		$wizards                      = $this->getTelemetryData()->get( 'wizards', [] );
+		$wizards[ $wizard ][ $event ] = $data;
+
+		$this->getTelemetryData()->set( 'wizards', $wizards )->save();
+	}
+
+	/**
+	 * Add StoreBuilder telemetry data to telemetry report.
+	 *
+	 * @param mixed[] $report
+	 *
+	 * @return mixed[]
+	 */
+	public function collectSetupData( $report ) {
+		// Limiting this to just the wizards for now until we have a reason to
+		// capture dynamic data points.
+		if ( ! empty( $this->getTelemetryData()->get( 'wizards' ) ) ) {
+			$report['setup']['storebuilder']['wizards'] = $this->getTelemetryData()->get( 'wizards' );
+		}
+
+		return $report;
 	}
 }

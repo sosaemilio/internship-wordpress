@@ -3,9 +3,9 @@
 namespace Nexcess\MAPPS;
 
 use Nexcess\MAPPS\Concerns\HasFlags;
-use Nexcess\MAPPS\Exceptions\ImmutableValueException;
-use Nexcess\MAPPS\Exceptions\SiteWorxException;
 use Nexcess\MAPPS\Support\GroupedOption;
+use StellarWP\PluginFramework\Exceptions\ImmutableValueException;
+use StellarWP\PluginFramework\Exceptions\SiteWorxException;
 
 /**
  * @property-read int    $account_id                   The Nexcess cloud account (site) ID.
@@ -16,8 +16,6 @@ use Nexcess\MAPPS\Support\GroupedOption;
  * @property-read bool   $customer_jetpack             TRUE if the customer is using their own Jetpack subscription.
  * @property-read string $environment                  The current environment. One of "production", "staging",
  *                                                     "regression", or "development".
- * @property-read string $feature_flags_url            The endpoint to retrieve feature flags details.
- * @property-read bool   $is_beginner_plan             TRUE if this site is on the WooCommerce beginner plan.
  * @property-read bool   $is_beta_tester               TRUE if this account is part of our beta testing program.
  * @property-read bool   $is_development_site          TRUE if this is a development environment.
  * @property-read bool   $is_mapps_site                TRUE if this is a Managed Applications (MAPPS) site.
@@ -49,9 +47,11 @@ use Nexcess\MAPPS\Support\GroupedOption;
  * @property-read string $quickstart_site_type         The type of QuickStart site, or an empty string if not a WP QuickStart site.
  * @property-read string $redis_host                   The Redis server host.
  * @property-read int    $redis_port                   The Redis server port.
+ * @property-read string $redis_socket                 The Redis server socket.
  * @property-read int    $service_id                   The Nexcess service ID.
  * @property-read string $storebuilder_site_id         The store ID for WooCommerce stores utilizing StoreBuilder.
  * @property-read string $telemetry_key                API key for the plugin reporter (telemetry).
+ * @property-read string $telemetry_reporter_endpoint  Endpoint used to report telemetry data.
  * @property-read string $temp_domain                  The site's temporary domain.
  * @property-read string $wc_automated_testing_url     The WooCommerce Automated Testing SaaS URL.
  */
@@ -88,7 +88,6 @@ class Settings {
 	 * Plans available prior to January 24, 2020.
 	 */
 	const PLAN_BASIC        = 'woo.basic';
-	const PLAN_BEGINNER     = 'woo.beginner';
 	const PLAN_BUSINESS     = 'woo.business';
 	const PLAN_FREELANCE    = 'wp.freelance';
 	const PLAN_PERSONAL     = 'wp.personal';
@@ -143,7 +142,7 @@ class Settings {
 	 * @param string $property The property name.
 	 * @param mixed  $value    The value being assigned.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ImmutableValueException If the setting cannot be modified.
+	 * @throws \StellarWP\PluginFramework\Exceptions\ImmutableValueException If the setting cannot be modified.
 	 */
 	public function __set( $property, $value ) {
 		throw new ImmutableValueException(
@@ -244,7 +243,6 @@ class Settings {
 			'client_id'                    => (int) $this->getConfig( 'client_id' ),
 			'customer_jetpack'             => (bool) $this->getConfig( 'customer_owns_jetpack', false ),
 			'environment'                  => $environment_type,
-			'feature_flags_url'            => $this->getConfig( 'feature_flags_url', 'https://feature-flags.nexcess-services.com' ),
 			'package_label'                => $this->getConfig( 'package_label', false ),
 			'plan_type'                    => $this->getConfig( 'app_type', 'unknown' ),
 			'managed_apps_endpoint'        => $this->getConfig( 'mapp_endpoint', false ),
@@ -260,8 +258,10 @@ class Settings {
 			'quickstart_site_id'           => $this->getConfig( 'quickstart_uuid', '' ),
 			'redis_host'                   => $this->getConfig( 'redis_host', '' ),
 			'redis_port'                   => (int) $this->getConfig( 'redis_port', 0 ),
+			'redis_socket'                 => $this->getConfig( 'redis_socket', '' ),
 			'service_id'                   => (int) $this->getConfig( 'service_id' ),
 			'storebuilder_site_id'         => $this->getConfig( 'storebuilder_uuid', '' ),
+			'telemetry_reporter_endpoint'  => $this->getConfig( 'telemetry_reporter_endpoint', 'https://plugin-api.liquidweb.com' ),
 			'temp_domain'                  => $this->getConfig( 'temp_domain', '' ),
 			'wc_automated_testing_url'     => $this->getConfig( 'wc_automated_testing_url', 'https://manager.wcat.nexcess-services.com' ),
 			'is_beta_tester'               => defined( 'NEXCESS_MAPPS_BETA_TESTER' )
@@ -283,11 +283,10 @@ class Settings {
 										&& ! empty( $environment['package_label'] ),
 			'is_mwch_site'         => 'woocommerce' === $environment['plan_type'],
 			'is_production_site'   => 'production' === $environment['environment'],
-			'is_qa_environment'    => 'https://mapp.qa.nxswd.net' === $environment['managed_apps_endpoint'],
+			'is_qa_environment'    => 'https://mapp.quality.nxswd.net' === $environment['managed_apps_endpoint'],
 			'is_regression_site'   => 'regression' === $environment['environment'],
 			'is_staging_site'      => 'staging' === $environment['environment'],
 			'is_development_site'  => 'development' === $environment['environment'],
-			'is_beginner_plan'     => self::PLAN_BEGINNER === $environment['package_label'],
 			'is_quickstart'        => ! empty( $environment['quickstart_site_id'] ) || $is_storebuilder,
 			'is_storebuilder'      => $is_storebuilder,
 			'is_temp_domain'       => wp_parse_url( site_url(), PHP_URL_HOST ) === $environment['temp_domain'],
@@ -396,7 +395,7 @@ class Settings {
 	/**
 	 * Retrieve and parse environment details from SiteWorx.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\SiteWorxException If invalid data is returned from SiteWorx.
+	 * @throws \StellarWP\PluginFramework\Exceptions\SiteWorxException If invalid data is returned from SiteWorx.
 	 *
 	 * @return mixed[] An array of environment details.
 	 */

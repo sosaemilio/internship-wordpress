@@ -5,13 +5,11 @@ namespace Nexcess\MAPPS\Commands;
 use Kadence_Plugin_API_Manager;
 use Kadence_Pro_API_Manager;
 use Nexcess\MAPPS\Concerns\MakesHttpRequests;
-use Nexcess\MAPPS\Exceptions\IngestionException;
-use Nexcess\MAPPS\Exceptions\RequestException;
-use Nexcess\MAPPS\Exceptions\WPErrorException;
 use Nexcess\MAPPS\Integrations\StoreBuilder as Integration;
 use Nexcess\MAPPS\Settings;
-use Nexcess\MAPPS\Support\Helpers;
-use WP_User;
+use StellarWP\PluginFramework\Exceptions\IngestionException;
+use StellarWP\PluginFramework\Exceptions\RequestException;
+use StellarWP\PluginFramework\Exceptions\WPErrorException;
 
 /**
  * Commands specific to StoreBuilder sites.
@@ -76,9 +74,6 @@ class StoreBuilder extends Command {
 	 * [--nocontent]
 	 * : Don't ingest the content.
 	 *
-	 * [--noemail]
-	 * : Don't send the welcome email.
-	 *
 	 *
 	 * ## EXAMPLES
 	 *
@@ -92,6 +87,9 @@ class StoreBuilder extends Command {
 	 * @param string[] $options Associative arguments.
 	 */
 	public function build( array $args, array $options ) {
+		// Let the StoreBuilder integration know that it's being initialized during a build.
+		! defined( 'STOREBUILDER_SETUP' ) && define( 'STOREBUILDER_SETUP', true );
+
 		if ( ! is_plugin_active( 'woocommerce/woocommerce.php' ) ) {
 			return $this->warning( 'Unable to configure StoreBuilder, as WooCommerce is not active on this site.' );
 		}
@@ -138,34 +136,7 @@ class StoreBuilder extends Command {
 			$this->ingestContent();
 		}
 
-		if ( empty( $options['noemail'] ) ) {
-			$this->sendWelcomeEmail();
-		}
-
 		$this->success( 'Site has been built successfully!' );
-	}
-
-	/**
-	 * Get a one-time login link for the site, this is usually sent via the QuickStart app.
-	 *
-	 * @subcommand get-login-link
-	 */
-	public function getLoginLink() {
-		$admin = get_user_by( 'email', get_option( 'admin_email' ) );
-
-		if ( ! $admin ) {
-			$admin = get_user_by( 'ID', 1 );
-		}
-
-		if ( ! $admin ) {
-			return $this->error( 'Unable to find an admin user to generate link.' );
-		}
-
-		$body = $this->getWelcomeEmailBody( $admin );
-
-		foreach ( $body as $key => $value ) {
-			$this->line( sprintf( '%s: %s', $key, $value ) );
-		}
 	}
 
 	/**
@@ -178,10 +149,9 @@ class StoreBuilder extends Command {
 
 		$plugins = apply_filters( 'Nexcess\\Mapps\\StoreBuilder\\PluginsToInstall', [
 			'kadence-blocks',
-			'kadence-starter-templates',
+			'/usr/local/plugins/wordpress/5/kadence-starter-templates.zip',
+			// 'kadence-starter-templates',
 			'spotlight-social-photo-feeds',
-			'woocommerce-gateway-stripe',
-			'woocommerce-paypal-payments',
 			'woocommerce', // It's going to be there, but we want to make sure we force all our dependencies.
 			'wp101',
 		] );
@@ -398,7 +368,7 @@ class StoreBuilder extends Command {
 	/**
 	 * Retrieve dependencies from the StoreBuilder API.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\RequestException If the dependencies can't be retrieved.
+	 * @throws \StellarWP\PluginFramework\Exceptions\RequestException If the dependencies can't be retrieved.
 	 *
 	 * @return array[] Details necessary to install all StoreBuilder plugins.
 	 */
@@ -449,58 +419,13 @@ class StoreBuilder extends Command {
 	}
 
 	/**
-	 * Send the welcome email to the given user through the SaaS.
-	 *
-	 * @param \WP_User $user The user to receive the welcome email.
-	 *
-	 * @return array The data that gets sent to the SaaS.
-	 */
-	protected function getWelcomeEmailBody( WP_User $user ) {
-		return [
-			'email'     => $user->user_email,
-			'login_url' => wp_login_url(),
-			'reset_url' => Helpers::getResetPasswordUrl( $user, [ 'app' => 'storebuilder' ] ),
-			'username'  => $user->user_login,
-		];
-	}
-
-	/**
-	 * Send the welcome email.
-	 */
-	protected function sendWelcomeEmail() {
-		$this->step( 'Sending welcome email...' );
-
-		$admin = get_user_by( 'email', get_option( 'admin_email' ) );
-
-		if ( ! $admin ) {
-			$admin = get_user_by( 'ID', 1 );
-		}
-
-		if ( $admin ) {
-			$sent = wp_remote_post( $this->settings->quickstart_app_url . '/api/notifications/storebuilder-setup-complete', [
-				'headers' => [
-					'Authorization' => 'Bearer ' . $this->settings->managed_apps_token,
-				],
-				'body'    => $this->getWelcomeEmailBody( $admin ),
-			] );
-
-			if ( is_wp_error( $sent ) ) {
-				$this->error( $sent->get_error_message(), 1 );
-			} else {
-				$this->step( 'Welcome email sent.' );
-				return;
-			}
-		}
-
-		$this->warning( 'Welcome email was not sent, could not find email address for user.' . PHP_EOL );
-	}
-
-	/**
 	 * Adds the Storebuilder Version as an option for future reference.
 	 */
 	protected function setStorebuilderVersion() {
-		update_option( 'storebuilder_version', '3.0' );
+		// Intentionally using `add_option` to avoid overwriting any previously defined values.
+		add_option( Integration::INITIAL_STOREBUILDER_VERSION, Integration::VERSION );
+		add_option( Integration::CURRENT_STOREBUILDER_VERSION, Integration::VERSION );
 
-		$this->step( sprintf( 'StoreBuilder version: %s', get_option( 'storebuilder_version' ) ) );
+		$this->step( sprintf( 'StoreBuilder version: %s', Integration::VERSION ) );
 	}
 }

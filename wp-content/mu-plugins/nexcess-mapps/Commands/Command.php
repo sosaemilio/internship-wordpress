@@ -163,7 +163,7 @@ abstract class Command {
 	 * @param string $message The step/section heading.
 	 */
 	protected function step( $message ) {
-		$this->line( PHP_EOL . $this->colorize( sprintf( '%%c%1$s%%n', $message ) ) );
+		$this->log( PHP_EOL . $this->colorize( sprintf( '%%c%1$s%%n', $message ) ) );
 
 		return $this;
 	}

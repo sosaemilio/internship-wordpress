@@ -11,10 +11,11 @@ use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
 use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
 use Nexcess\MAPPS\HealthChecks\WooCommerceCartFragments as WooCommerceCartFragmentsHealthCheck;
+use Nexcess\MAPPS\Modules\Telemetry;
 use Nexcess\MAPPS\Services\Managers\SiteHealthManager;
 use Nexcess\MAPPS\Services\Options;
 use Nexcess\MAPPS\Settings;
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 
 class WooCommerceCartFragments extends Integration {
 	use HasAdminPages;
@@ -63,9 +64,35 @@ class WooCommerceCartFragments extends Integration {
 	];
 
 	/**
+	 * List of common plugins that rely on WooCommerce Cart Fragments for some functionality.
+	 * Disable this Integration when these plugins are active to avoid conflicts and confusion.
+	 *
+	 * @var array
+	 */
+	public $pluginsToEnableCartFor = [
+		'elementor/elementor.php',
+		'elementor-pro/elementor-pro.php',
+	];
+
+	/**
 	 * The option for disabling cart fragments.
 	 */
 	const OPTION_NAME = 'nexcess_mapps_woocommerce';
+
+	/**
+	 * The key used in the telemetry report which contains the relevant integration info.
+	 */
+	const TELEMETRY_FEATURE_KEY = 'woocommerce_cart_fragments';
+
+	/**
+	 * The option key which stores related setting status.
+	 */
+	const CART_FRAGMENTS_STATUS = 'cart_fragments_status';
+
+	/**
+	 * The option key which stores related setting status.
+	 */
+	const IS_ACTIVE = 'is_active';
 
 	/**
 	 * @param \Nexcess\MAPPS\Settings                            $settings
@@ -79,11 +106,15 @@ class WooCommerceCartFragments extends Integration {
 	}
 
 	/**
-	 * Determine whether or not this integration should be loaded.
+	 * Determine whether this integration should be loaded.
 	 *
-	 * @return bool Whether or not this integration be loaded in this environment.
+	 * @return bool
 	 */
 	public function shouldLoadIntegration() {
+		if ( $this->isAtLeastOnePluginActive( $this->pluginsToEnableCartFor ) ) {
+			return false;
+		}
+
 		return $this->isPluginActive( 'woocommerce/woocommerce.php' );
 	}
 
@@ -99,6 +130,17 @@ class WooCommerceCartFragments extends Integration {
 	}
 
 	/**
+	 * Retrieve all filters for the integration.
+	 *
+	 * @return array[]
+	 */
+	protected function getFilters() {
+		return [
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'addFeatureToTelemetry' ] ],
+		];
+	}
+
+	/**
 	 * Retrieve all actions for the integration.
 	 *
 	 * @return array[]
@@ -106,6 +148,8 @@ class WooCommerceCartFragments extends Integration {
 	protected function getActions() {
 		$base = [
 			[ 'wp_enqueue_scripts', [ $this, 'dequeueCartFragments' ], 20 ],
+			[ 'Nexcess\MAPPS\Options\Update', [ $this, 'saveValue' ], 10, 3 ],
+			[ 'load-toplevel_page_nexcess-mapps', [ $this, 'flipTrueFalseForCartFragmentsStatus' ], 10 ],
 		];
 
 		$actions = [];
@@ -116,22 +160,37 @@ class WooCommerceCartFragments extends Integration {
 		return array_merge( $base, $actions );
 	}
 
-	/**
-	 * Enable cart fragments.
+	/** Set cart fragments.
 	 *
-	 * These booleans are backwards from what you'd expect, but that is because
-	 * we want the option to be 'status' to prevent confusion, but we also want
-	 * the option page to be 'turn ON this setting to turn OFF cart fragments'.
+	 * Replaced the confusing enable/disable functions. Sets cart fragment status to intended state with less confusion.
+	 *
+	 * @param bool $status
 	 */
-	public function enableCartFragments() {
-		$this->getOption()->set( 'cart_fragments_status', false )->save();
+	public function setCartFragmentsStatus( $status ) {
+		$this->getOption()->set( self::CART_FRAGMENTS_STATUS, $status )->save();
+		$this->getOption()->set( self::IS_ACTIVE, $status )->save();
 	}
 
 	/**
-	 * Disable cart fragments.
+	 * When the settings are saved, update the cart fragments remote api with our new status.
+	 *
+	 * @param string|array $key  The key of the option being saved.
+	 * @param mixed        $new  New value.
+	 * @param mixed        $prev Previous value, most likely true or false.
 	 */
-	public function disableCartFragments() {
-		$this->getOption()->set( 'cart_fragments_status', true )->save();
+	public function saveValue( $key, $new, $prev ) {
+		// If nothing changed, do nothing.
+		if ( $prev === $new ) {
+			return;
+		}
+
+		// Only apply to our option.
+		if ( ! $this->options->verifyOptionKey( $key, [ self::OPTION_NAME, self::CART_FRAGMENTS_STATUS ] ) ) {
+			return;
+		}
+
+		$this->getOption()->set( self::IS_ACTIVE, (bool) $new )->save();
+		$this->getOption()->set( self::CART_FRAGMENTS_STATUS, (bool) $new )->save();
 	}
 
 	/**
@@ -140,7 +199,13 @@ class WooCommerceCartFragments extends Integration {
 	 * @return string Either 'enabled' or 'disabled'.
 	 */
 	public function getCartFragmentsSetting() {
-		return $this->getOption()->cart_fragments_status ? 'disabled' : 'enabled';
+		if ( $this->isAtLeastOnePluginActive( $this->pluginsToEnableCartFor ) ) {
+			return 'enabled';
+		}
+
+		$is_active = $this->flipTrueFalseForCartFragmentsStatus();
+
+		return $is_active ? 'enabled' : 'disabled';
 	}
 
 	/**
@@ -148,9 +213,9 @@ class WooCommerceCartFragments extends Integration {
 	 */
 	public function registerOption() {
 		$this->options->addOption(
-			[ self::OPTION_NAME, 'cart_fragments_status' ],
+			[ self::OPTION_NAME, self::CART_FRAGMENTS_STATUS ],
 			'checkbox',
-			__( 'Disable WooCommerce Cart Fragments', 'nexcess-mapps' ),
+			__( 'Enable WooCommerce Cart Fragments', 'nexcess-mapps' ),
 			[ 'description' => __( "By default, WooCommerce includes a 'cart fragments' script that makes a number of uncached AJAX requests on every page load, which can hurt site performance. It's recommended to disable cart fragments unless absolutely necessary.", 'nexcess-mapps' ) ]
 		);
 	}
@@ -218,5 +283,45 @@ class WooCommerceCartFragments extends Integration {
 	 */
 	public function fullCartPluginList() {
 		return array_merge( $this->cartPlugins, $this->cartFragmentPlugins );
+	}
+
+	/**
+	 * Helper method to handle the switch of logic from opposite to accurate bool logic for backward compatibility.
+	 *
+	 * Returns opposite value for CART_FRAGMENTS_STATUS for the sites where values are still not updated with new logic,
+	 * updates new setting to track such sites and prevent value flipping again.
+	 *
+	 * @return bool
+	 */
+	public function flipTrueFalseForCartFragmentsStatus() {
+		$is_active      = $this->getOption()->get( self::IS_ACTIVE );
+		$cart_fragments = $this->getOption()->get( self::CART_FRAGMENTS_STATUS );
+
+		if ( ! is_null( $is_active ) ) {
+			return $is_active;
+		}
+
+		// If this is a new site setup, no switch is needed.
+		if ( is_null( $cart_fragments ) ) {
+			return false;
+		}
+
+		$this->getOption()->set( self::CART_FRAGMENTS_STATUS, ! $cart_fragments )->save();
+		$this->getOption()->set( self::IS_ACTIVE, ! $cart_fragments )->save();
+
+		return ! $cart_fragments;
+	}
+
+	/**
+	 * Adds feature integration information to the telemetry report.
+	 *
+	 * @param array[] $report The gathered report data.
+	 *
+	 * @return array[] The $report array.
+	 */
+	public function addFeatureToTelemetry( array $report ) {
+		$report['features'][ self::TELEMETRY_FEATURE_KEY ] = $this->flipTrueFalseForCartFragmentsStatus();
+
+		return $report;
 	}
 }

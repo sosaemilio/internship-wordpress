@@ -3,6 +3,7 @@
 namespace Nexcess\MAPPS\Integrations\StoreBuilder;
 
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
+use Nexcess\MAPPS\Integrations\DomainChanges;
 
 use const Nexcess\MAPPS\PLUGIN_URL;
 
@@ -20,14 +21,28 @@ class Setup {
 	private $look_and_feel;
 
 	/**
+	 * @var ShippingPlugins Supported shipping plugins.
+	 */
+	protected $shipping_plugins;
+
+	/**
+	 * @var PaymentPlugins
+	 */
+	private $payment_plugins;
+
+	/**
 	 * Setup any dependencies that are needed for the class.
 	 *
 	 * @param StoreBuilderFTC $storebuilder_ftc
 	 * @param LookAndFeel     $look_and_feel
+	 * @param ShippingPlugins $shipping_plugins
+	 * @param PaymentPlugins  $payment_plugins
 	 */
-	public function __construct( StoreBuilderFTC $storebuilder_ftc, LookAndFeel $look_and_feel ) {
+	public function __construct( StoreBuilderFTC $storebuilder_ftc, LookAndFeel $look_and_feel, ShippingPlugins $shipping_plugins, PaymentPlugins $payment_plugins ) {
 		$this->storebuilder_ftc = $storebuilder_ftc;
 		$this->look_and_feel    = $look_and_feel;
+		$this->shipping_plugins = $shipping_plugins;
+		$this->payment_plugins  = $payment_plugins;
 	}
 
 	/**
@@ -36,16 +51,25 @@ class Setup {
 	 * @return array The Setup Props.
 	 */
 	public function getSetupProps() {
+		$cards = [
+			$this->getFtcCard(),
+			$this->getLookAndFeelCard(),
+			$this->getPaymentGatewayCard(),
+			$this->getManageProductsCard(),
+			$this->getShippingConfigurationCard(),
+			$this->getLaunchDomainCard(),
+		];
+
+		// Remove any cards that are empty.
+		$cards = array_filter( $cards );
+
+		// Necessary to re-index the array, otherwise JS interprets as an object.
+		$cards = array_values( $cards );
+
 		return [
 			'title' => __( 'Setup your store', 'nexcess-mapps' ),
 			'intro' => __( 'Our set up wizard will help you get the most out of your store.', 'nexcess-mapps' ),
-			'cards' => [
-				$this->getFtcCard(),
-				$this->getLookAndFeelCard(),
-				$this->getPaymentGatewayCard(),
-				$this->getManageProductsCard(),
-				$this->getShippingConfigurationCard(),
-			],
+			'cards' => $cards,
 		];
 	}
 
@@ -64,11 +88,12 @@ class Setup {
 			'time'      => __( '5 Minutes', 'nexcess-mapps' ),
 			'rows'      => [
 				[
-					'id'    => 'ftc-wizard',
-					'type'  => 'task',
-					'title' => __( 'Site Name, Logo & Store Details', 'nexcess-mapps' ),
-					'intro' => __( 'Tell us a little bit about your site.', 'nexcess-mapps' ),
-					'icon'  => 'setup-icon-setup.png',
+					'id'      => 'ftc-wizard',
+					'type'    => 'task',
+					'taskCta' => __( 'Get Started', 'nexcess-mapps' ),
+					'title'   => __( 'Site Name, Logo & Store Details', 'nexcess-mapps' ),
+					'intro'   => __( 'Tell us a little bit about your site.', 'nexcess-mapps' ),
+					'icon'    => 'setup-icon-setup.png',
 				],
 			],
 		];
@@ -84,7 +109,7 @@ class Setup {
 
 		return [
 			'id'        => 'look-and-feel',
-			'title'     => __( 'Design your site', 'nexcess-mapps' ),
+			'title'     => __( 'Update your global styles', 'nexcess-mapps' ),
 			'intro'     => __( "It's all about appearances.", 'nexcess-mapps' ),
 			'completed' => $lf_complete,
 			'time'      => __( '3 Minutes', 'nexcess-mapps' ),
@@ -100,19 +125,25 @@ class Setup {
 	 */
 	public function getPaymentGatewayCard() {
 		$payment_gateways = [];
+		$footer_messages  = [];
 
-		if ( $this->isPluginActive( 'woocommerce-gateway-stripe/woocommerce-gateway-stripe.php' ) ) {
-			$payment_gateways[] = $this->getStripeRow();
+		foreach ( $this->payment_plugins->getPlugins() as $plugin ) {
+			$payment_gateways[] = $plugin['card']['row'];
+			$footer_messages[]  = $plugin['card']['footerMessage'];
 		}
 
-		if ( $this->isPluginActive( 'woocommerce-paypal-payments/woocommerce-paypal-payments.php' ) ) {
-			$payment_gateways[] = $this->getPaypalRow();
+		$payment_gateways = array_filter( $payment_gateways );
+		$footer_messages  = array_filter( $footer_messages );
+
+		// Hide setup card if no plugins are available.
+		if ( empty( $payment_gateways ) ) {
+			return [];
 		}
 
 		return [
 			'id'        => 'payment-gateways',
 			'title'     => __( 'Configure payment', 'nexcess-mapps' ),
-			'intro'     => __( 'Dont leave money on the table.', 'nexcess-mapps' ),
+			'intro'     => __( 'Don\'t leave money on the table.', 'nexcess-mapps' ),
 			'completed' => false,
 			'time'      => '',
 			'rows'      => $payment_gateways,
@@ -122,20 +153,7 @@ class Setup {
 					'type'     => 'help',
 					'title'    => __( 'Need help with payments?', 'nexcess-mapps' ),
 					'message'  => '',
-					'messages' => [
-						[
-							'title'    => __( 'WP 101: Stripe', 'nexcess-mapps' ),
-							'url'      => 'wp101:woocommerce-stripe',
-							'target'   => '_self',
-							'dashicon' => '',
-						],
-						[
-							'title'    => __( 'WP 101: Paypal', 'nexcess-mapps' ),
-							'url'      => 'wp101:woocommerce-paypal-standard',
-							'target'   => '_self',
-							'dashicon' => '',
-						],
-					],
+					'messages' => $footer_messages,
 				],
 			],
 		];
@@ -298,91 +316,202 @@ class Setup {
 	 * @return array The card details.
 	 */
 	public function getShippingConfigurationCard() {
-		$shipping_url = admin_url( 'admin.php?page=wc-settings&tab=shipping' );
+		// Flat rate is built-in to WooCommerce.
+		$rows = [
+			[
+				'id'          => 'flat-rate',
+				'type'        => 'task',
+				'taskCta'     => __( 'Flat Rate Settings', 'nexcess-mapps' ),
+				'title'       => __( 'Flat Rate Shipping', 'nexcess-mapps' ),
+				'intro'       => __( 'Charge a fixed rate of your choosing for shipping.', 'nexcess-mapps' ),
+				'icon'        => 'setup-icon-shipping.png',
+				'disabled'    => false,
+				'disableText' => '',
+				'url'         => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+			],
+		];
+
+		// Check our supported shipping plugins.
+		foreach ( $this->shipping_plugins->getPlugins() as $plugin ) {
+			if ( empty( $plugin['active'] ) || empty( $plugin['card'] ) ) {
+				continue;
+			}
+
+			$rows[] = $plugin['card'];
+		}
+
+		// If there are additional options, make wizard available.
+		if ( 1 === count( $rows ) && 0 < count( $this->shipping_plugins->getPlugins() ) ) {
+			$rows[] = [
+				'id'   => 'shipping-wizard',
+				'type' => 'launch-shipping-wizard',
+			];
+		}
+
 		return [
 			'id'        => 'shipping-configuration',
 			'title'     => __( 'Configure shipping', 'nexcess-mapps' ),
 			'intro'     => __( 'Offer flat rate shipping and/or set up ShipStation to offer multiple rates.', 'nexcess-mapps' ),
 			'completed' => false,
 			'time'      => '',
+			'rows'      => $rows,
+			'footers'   => [
+				[
+					'id'    => 'learning-shipping',
+					'type'  => 'accordion',
+					'title' => __( 'Learn more about Shipping', 'nexcess-mapps' ),
+					'rows'  => [
+						[
+							'id'   => 'learn-shipping',
+							'type' => 'learn-shipping',
+						],
+						[
+							'id'      => 'manage-shipping-row-1',
+							'type'    => 'columns',
+							'title'   => '',
+							'intro'   => '',
+							'columns' => [
+								[
+									'title' => __( 'Shipping Zones', 'nexcess-mapps' ),
+									'links' => [
+										[
+											'icon'   => 'Add',
+											'title'  => __( 'Set up Shipping Zones', 'nexcess-mapps' ),
+											'url'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
+											'target' => '_self',
+										],
+										[
+											'icon'   => 'LocalLibrary',
+											'title'  => __( 'WooCommerce: Shipping Zones Docs', 'nexcess-mapps' ),
+											'url'    => 'https://woocommerce.com/document/setting-up-shipping-zones/',
+											'target' => '_blank',
+										],
+									],
+								],
+								[
+									'title' => __( 'Shipping Classes', 'nexcess-mapps' ),
+									'links' => [
+										[
+											'icon'   => 'Add',
+											'title'  => __( 'Set up Shipping Classes', 'nexcess-mapps' ),
+											'url'    => admin_url( 'admin.php?page=wc-settings&tab=shipping&section=classes' ),
+											'target' => '_self',
+										],
+										[
+											'icon'   => 'School',
+											'title'  => __( 'Tutorial: Shipping Classes', 'nexcess-mapps' ),
+											'url'    => 'wp101:woocommerce-shipping-classes',
+											'target' => '_self',
+										],
+										[
+											'icon'   => 'LocalLibrary',
+											'title'  => __( 'WooCommerce: Shipping Classes Docs', 'nexcess-mapps' ),
+											'url'    => 'https://woocommerce.com/document/product-shipping-classes/',
+											'target' => '_blank',
+										],
+									],
+								],
+								[
+									'title' => __( 'Shipping Calculations', 'nexcess-mapps' ),
+									'links' => [
+										[
+											'icon'   => 'Add',
+											'title'  => __( 'Set Flat Rate shipping calculations', 'nexcess-mapps' ),
+											'url'    => admin_url( 'admin.php?page=wc-settings&tab=shipping&section=options' ),
+											'target' => '_blank',
+										],
+										[
+											'icon'   => 'School',
+											'title'  => __( 'Tutorial: Flat Rate Shipping', 'nexcess-mapps' ),
+											'url'    => 'wp101:woocommerce-flat-rate-shipping',
+											'target' => '_self',
+										],
+									],
+								],
+							],
+						],
+					],
+				],
+			],
+		];
+	}
+
+	/**
+	 * Get card details for the "Launch with a Custom Domain".
+	 *
+	 * @return array The card details.
+	 */
+	public function getLaunchDomainCard() {
+		$completed = (bool) get_option( DomainChanges::COMPLETED_OPTION_NAME, false );
+
+		$details = [
+			'id'        => 'launch-domain',
+			'title'     => __( 'Go Live with a domain', 'nexcess-mapps' ),
+			'intro'     => __( 'Go live with a custom domain, whether you purchased with Nexcess of elsewhere.', 'nexcess-mapps' ),
+			'completed' => $completed,
+			'time'      => $completed ? 'complete' : '',
 			'rows'      => [
 				[
-					'id'          => 'flat-rate',
-					'type'        => 'task',
-					'title'       => __( 'Flat Rate Shipping', 'nexcess-mapps' ),
-					'intro'       => __( 'Charge a fixed rate of your choosing for shipping.', 'nexcess-mapps' ),
-					'icon'        => 'setup-icon-shipping.png',
-					'disabled'    => false,
-					'disableText' => '',
-					'url'         => $shipping_url,
+					'id'   => 'launch-domain-status',
+					'type' => 'launch-domain-status',
 				],
+			],
+		];
+
+		if ( ! $completed ) {
+			$details['rows'][] = [
+				'id'      => 'site-domain-wizard',
+				'type'    => 'task',
+				'title'   => __( 'Publish your site with a custom domain', 'nexcess-mapps' ),
+				'intro'   => __( 'Update your store URL with a custom domain you own', 'nexcess-mapps' ),
+				'icon'    => 'setup-icon-launch.png',
+				'taskCta' => __( 'Get Started', 'nexcess-mapps' ),
+			];
+		}
+
+		return $details;
+	}
+
+	/**
+	 * Builds a footer if the domain is connected.
+	 *
+	 * @param bool $connected The connected status.
+	 *
+	 * @return array[] Footer with help.
+	 */
+	private function getLaunchDomainFooters( $connected ) {
+		if ( $connected ) {
+			// If connected, return this array.
+			return [
 				[
-					'id'   => 'learn-shipping',
-					'type' => 'learn-shipping',
+					'id'       => 'custom-domain-help-disconnect',
+					'type'     => 'help',
+					'title'    => __( 'Want to disconnect this domain?', 'nexcess-mapps' ),
+					'message'  => '',
+					'messages' => [
+						[
+							'title'    => __( 'We\'re happy to help.', 'nexcess-mapps' ),
+							'url'      => 'https://www.nexcess.net/support/',
+							'target'   => '_self',
+							'dashicon' => '',
+						],
+					],
 				],
-				[
-					'id'      => 'manage-shipping-row-1',
-					'type'    => 'columns',
-					'title'   => '',
-					'intro'   => '',
-					'columns' => [
-						[
-							'title' => __( 'Shipping Zones', 'nexcess-mapps' ),
-							'links' => [
-								[
-									'icon'   => 'Add',
-									'title'  => __( 'Set up Shipping Zones', 'nexcess-mapps' ),
-									'url'    => admin_url( 'admin.php?page=wc-settings&tab=shipping' ),
-									'target' => '_self',
-								],
-								[
-									'icon'   => 'LocalLibrary',
-									'title'  => __( 'WooCommerce: Shipping Zones Docs', 'nexcess-mapps' ),
-									'url'    => 'https://woocommerce.com/document/setting-up-shipping-zones/',
-									'target' => '_blank',
-								],
-							],
-						],
-						[
-							'title' => __( 'Shipping Classes', 'nexcess-mapps' ),
-							'links' => [
-								[
-									'icon'   => 'Add',
-									'title'  => __( 'Set up Shipping Classes', 'nexcess-mapps' ),
-									'url'    => admin_url( 'admin.php?page=wc-settings&tab=shipping&section=classes' ),
-									'target' => '_self',
-								],
-								[
-									'icon'   => 'School',
-									'title'  => __( 'Tutorial: Shipping Classes', 'nexcess-mapps' ),
-									'url'    => 'wp101:woocommerce-shipping-classes',
-									'target' => '_self',
-								],
-								[
-									'icon'   => 'LocalLibrary',
-									'title'  => __( 'WooCommerce: Shipping Classes Docs', 'nexcess-mapps' ),
-									'url'    => 'https://woocommerce.com/document/product-shipping-classes/',
-									'target' => '_blank',
-								],
-							],
-						],
-						[
-							'title' => __( 'Shipping Calculations', 'nexcess-mapps' ),
-							'links' => [
-								[
-									'icon'   => 'Add',
-									'title'  => __( 'Set Flat Rate shipping calculations', 'nexcess-mapps' ),
-									'url'    => admin_url( 'admin.php?page=wc-settings&tab=shipping&section=options' ),
-									'target' => '_blank',
-								],
-								[
-									'icon'   => 'School',
-									'title'  => __( 'Tutorial: Flat Rate Shipping', 'nexcess-mapps' ),
-									'url'    => 'wp101:woocommerce-flat-rate-shipping',
-									'target' => '_self',
-								],
-							],
-						],
+			];
+		}
+
+		return [
+			[
+				'id'       => 'custom-domain-help',
+				'type'     => 'help',
+				'title'    => __( 'Need help?', 'nexcess-mapps' ),
+				'message'  => '',
+				'messages' => [
+					[
+						'title'    => __( 'Check out our guide on going live.', 'nexcess-mapps' ),
+						'url'      => 'https://www.nexcess.net/storebuilder/resources/going-live-with-your-store/',
+						'target'   => '_self',
+						'dashicon' => '',
 					],
 				],
 			],
@@ -404,23 +533,25 @@ class Setup {
 			], admin_url( 'customize.php' ));
 			return [
 				[
-					'id'    => 'fonts-colors-wizard',
-					'type'  => 'task',
-					'title' => __( 'Fonts & Colors', 'nexcess-mapps' ),
-					'intro' => __( 'Further customize the look of your site.', 'nexcess-mapps' ),
-					'icon'  => 'setup-icon-palette.png',
-					'url'   => $customizer_url,
+					'id'      => 'fonts-colors-wizard',
+					'type'    => 'task',
+					'taskCta' => __( 'Get Started', 'nexcess-mapps' ),
+					'title'   => __( 'Fonts & Colors', 'nexcess-mapps' ),
+					'intro'   => __( 'Further customize the look of your site.', 'nexcess-mapps' ),
+					'icon'    => 'setup-icon-palette.png',
+					'url'     => $customizer_url,
 				],
 			];
 		}
 
 		return [
 			[
-				'id'    => 'look-and-feel-wizard',
-				'type'  => 'task',
-				'title' => __( 'Select A Starter Template', 'nexcess-mapps' ),
-				'intro' => __( 'Choose a design to start with and customize.', 'nexcess-mapps' ),
-				'icon'  => 'setup-icon-design.png',
+				'id'      => 'look-and-feel-wizard',
+				'type'    => 'task',
+				'taskCta' => __( 'Get Started', 'nexcess-mapps' ),
+				'title'   => __( 'Select A Starter Template', 'nexcess-mapps' ),
+				'intro'   => __( 'Choose a design to start with and customize.', 'nexcess-mapps' ),
+				'icon'    => 'setup-icon-design.png',
 			],
 		];
 	}
@@ -430,170 +561,76 @@ class Setup {
 	 *
 	 * @param bool $lf_complete True if the look and feel card is completed, false otherwise.
 	 *
-	 * @return array|array[] Array with information. Empty array otherwise.
+	 * @return array|array[] Array with information.
 	 */
 	private function getLookAndFeelFooters( $lf_complete ) {
+		$footer_messages = [
+			[
+				'title'    => __( 'Edit specific Pages', 'nexcess-mapps' ),
+				'url'      => add_query_arg( 'post_type', 'page', admin_url( 'edit.php' ) ),
+				'target'   => '_self',
+				'dashicon' => '',
+			],
+		];
+
 		if ( $lf_complete ) {
-			return [
-				[
-					'id'       => 'look-and-feel-wizard',
-					'type'     => 'status',
-					'title'    => __( 'Selected Template:', 'nexcess-mapps' ),
-					'message'  => $this->look_and_feel->getTemplate(),
-					'messages' => [],
-				],
+			$footer_messages[] = [
+				'title'    => __( 'Pick a different template', 'nexcess-mapps' ),
+				'url'      => '',
+				'target'   => '',
+				'dashicon' => '',
 			];
 		}
 
-		return [];
-	}
-
-	/**
-	 * Get Stripe details for Payment Gateways Card.
-	 */
-	private function getStripeRow() {
-		$stripe_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=stripe' );
-
-		if ( false === $this->isStripeEnabled() ) {
-			$stripe_status = [
-				'disabled'  => false,
-				'connected' => false,
-			];
-		} else {
-			$stripe_status = [
-				'disabled'  => false,
-				'connected' => true,
-			];
-		}
-
-		$defaults = [
-			'id'          => 'stripe',
-			'type'        => 'task',
-			'title'       => __( 'Set Up Stripe', 'nexcess-mapps' ),
-			'intro'       => __( 'Charge credit cards and pay low merchant fees.', 'nexcess-mapps' ),
-			'icon'        => 'setup-icon-stripe.png',
-			'disableText' => __( 'Manage', 'nexcess-mapps' ),
-			'button'      => [
-				'label'           => __( 'Connect Stripe', 'nexcess-mapps' ),
-				'url'             => $stripe_url,
-				'backgroundColor' => '#645FF3',
+		return [
+			[
+				'id'       => 'look-and-feel-wizard',
+				'type'     => 'look-and-feel-footer',
+				'messages' => $footer_messages,
 			],
 		];
-		return array_merge( $defaults, $stripe_status );
-	}
-
-	/**
-	 * Get PayPal details for Payment Gateways Card.
-	 */
-	private function getPaypalRow() {
-		$paypal_url = admin_url( 'admin.php?page=wc-settings&tab=checkout&section=ppcp-gateway' );
-
-		if ( false === $this->isPaypalConnected() ) {
-			$paypal_status = [
-				'disabled'  => false,
-				'connected' => false,
-			];
-		} else {
-			$paypal_status = [
-				'disabled'  => false,
-				'connected' => true,
-			];
-		}
-
-		$defaults = [
-			'id'          => 'paypal',
-			'type'        => 'task',
-			'title'       => __( 'Set Up PayPal', 'nexcess-mapps' ),
-			'intro'       => __( 'Receive payments via PayPal.', 'nexcess-mapps' ),
-			'icon'        => 'setup-icon-paypal.png',
-			'disableText' => __( 'Manage', 'nexcess-mapps' ),
-			'button'      => [
-				'label'           => __( 'Connect PayPal', 'nexcess-mapps' ),
-				'url'             => $paypal_url,
-				'backgroundColor' => '#172C70',
-			],
-		];
-		return array_merge( $defaults, $paypal_status );
-	}
-
-	/**
-	 * Check if the Stripe Integrations is enabled.
-	 *
-	 * @return bool If integration is not enabled.
-	 */
-	private function isStripeEnabled() {
-		$gateways = $this->isStripeGatewayInstalled();
-		if ( is_array( $gateways ) ) {
-			return 'yes' === $gateways['stripe']->enabled;
-		}
-		return false;
-	}
-
-	/**
-	 * Check if the PayPal Integrations is enabled.
-	 *
-	 * @return bool If integration is not enabled.
-	 */
-	private function isPaypalConnected() {
-		$gateways = $this->isPaypalGatewayInstalled();
-		if ( is_array( $gateways ) ) {
-			return 'yes' === $gateways['ppcp-gateway']->enabled;
-		}
-		return false;
-	}
-
-	/**
-	 * Check if the Stripe Gateway is installed.
-	 *
-	 * The Woocommerce Stripe plugin needs to be installed. When the Stripe
-	 * plugin is active not only 1 gateway is available, there a more Stripe
-	 * gateways, but if the `stripe` key exists then more gateways might exist.
-	 * We just need to check for the main gateway.
-	 *
-	 * @return mixed The gateways array, false otherwise
-	 */
-	public function isStripeGatewayInstalled() {
-		if ( ! class_exists( 'WC' ) ) {
-			return false;
-		}
-
-		$gateways = WC()->payment_gateways()->payment_gateways();
-		if ( array_key_exists( 'stripe', $gateways ) ) {
-			return $gateways;
-		}
-		return false;
-	}
-
-	/**
-	 * Check if the PayPal Gateway is installed.
-	 *
-	 * The Woocommerce PayPal plugin needs to be installed. When the PayPal
-	 * plugin is active not only 1 gateway is available, there a more PayPal
-	 * gateways, but if the `ppcp-gateway` key exists then more gateways might exist.
-	 * We just need to check for the main gateway.
-	 *
-	 * @return mixed The gateways array, false otherwise
-	 */
-	public function isPaypalGatewayInstalled() {
-		if ( ! class_exists( 'WC' ) ) {
-			return false;
-		}
-
-		$gateways = WC()->payment_gateways()->payment_gateways();
-		if ( array_key_exists( 'ppcp-gateway', $gateways ) ) {
-			return $gateways;
-		}
-		return false;
 	}
 
 	/**
 	 * Return an array with the Look and Feel props.
 	 */
 	public function getLookAndFeelProps() {
+		return array_merge(
+			[
+				'canBeClosed'   => true,
+				'ajaxUrl'       => admin_url( 'admin-ajax.php' ),
+				'ajaxNonce'     => wp_create_nonce( 'kadence-ajax-verification' ),
+				'autoLaunch'    => false,
+				'theme'         => wp_get_theme()->name,
+				'ajaxTelemetry' => [
+					'started' => [
+						'action' => LookAndFeel::AJAX_STARTED_ACTION,
+						'nonce'  => wp_create_nonce( LookAndFeel::AJAX_STARTED_ACTION ),
+					],
+				],
+			],
+			get_option( '_storebuilder_look_and_feel', [] )
+		);
+	}
+
+	/**
+	 * Return an array with the Site Domain props.
+	 */
+	public function getSiteDomainProps() {
 		return [
-			'canBeClosed' => true,
-			'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-			'autoLaunch'  => false,
+			'canBeClosed'           => true,
+			'ajaxUrl'               => admin_url( 'admin-ajax.php' ),
+			'autoLaunch'            => false,
+			'domainRegistrationUrl' => esc_url( 'https://www.nexcess.net/domain-registration/' ),
+			'verifyDomainNonce'     => wp_create_nonce( 'mapps-verify-domain' ),
+			'changeDomainNonce'     => wp_create_nonce( 'mapps-change-domain' ),
+			'verifyingUrl'          => get_option( DomainChanges::VERIFYING_OPTION_NAME, '' ),
+			'ajaxTelemetry'         => [
+				'started' => [
+					'action' => DomainChanges::AJAX_STARTED_ACTION,
+					'nonce'  => wp_create_nonce( DomainChanges::AJAX_STARTED_ACTION ),
+				],
+			],
 		];
 	}
 
@@ -602,8 +639,14 @@ class Setup {
 	 */
 	public function getFtcProps() {
 		$args = [
-			'autoLaunch'  => false,
-			'canBeClosed' => true,
+			'autoLaunch'    => false,
+			'canBeClosed'   => true,
+			'ajaxTelemetry' => [
+				'started' => [
+					'action' => StoreBuilderFTC::AJAX_STARTED_ACTION,
+					'nonce'  => wp_create_nonce( StoreBuilderFTC::AJAX_STARTED_ACTION ),
+				],
+			],
 		];
 
 		if ( ! $this->storebuilder_ftc->isFtcComplete() ) {
@@ -611,6 +654,34 @@ class Setup {
 		}
 
 		return $args;
+	}
+
+	/**
+	 * Return an array with the Shipping Configuration props.
+	 */
+	public function getShippingConfigurationProps() {
+		$providers = [];
+
+		foreach ( $this->shipping_plugins->getPlugins() as $plugin_slug => $plugin ) {
+			$providers[ $plugin_slug ] = [
+				'active' => $plugin['active'],
+			];
+		}
+
+		return [
+			'canBeClosed'         => true,
+			'ajaxUrl'             => admin_url( 'admin-ajax.php' ),
+			'ajaxAction'          => ShippingPlugins::AJAX_ACTION,
+			'autoLaunch'          => false,
+			'providers'           => $providers,
+			'shippingConfigNonce' => wp_create_nonce( ShippingPlugins::AJAX_ACTION ),
+			'ajaxTelemetry'       => [
+				'started' => [
+					'action' => ShippingPlugins::AJAX_STARTED_ACTION,
+					'nonce'  => wp_create_nonce( ShippingPlugins::AJAX_STARTED_ACTION ),
+				],
+			],
+		];
 	}
 
 	/**
@@ -628,6 +699,50 @@ class Setup {
 	}
 
 	/**
+	 * Return an array with Payments props.
+	 */
+	public function getPaymentProps() {
+		$data = [
+			'oauth_urls' => [],
+			'admin_urls' => [],
+		];
+
+		foreach ( $this->payment_plugins->getPlugins() as $plugin_slug => $plugin ) {
+			$data[ $plugin_slug ]['oauth_urls'] = $plugin['oauth_urls'];
+			$data[ $plugin_slug ]['admin_url']  = $plugin['admin_url'];
+			$data[ $plugin_slug ]['connected']  = $plugin['connected'];
+		}
+
+		$data['stripe-nonce']           = wp_create_nonce( 'mapps-get-stripe-keys' );
+		$data['paypal-nonce']           = wp_create_nonce( 'mapps-get-paypal-keys' );
+		$data['install-plugins-url']    = add_query_arg( 'action', PaymentPlugins::AJAX_INSTALL_ACTION, admin_url( 'admin-ajax.php' ) );
+		$data['install-plugins-nonce']  = wp_create_nonce( PaymentPlugins::AJAX_INSTALL_ACTION );
+		$data['install-plugins-action'] = PaymentPlugins::AJAX_INSTALL_ACTION;
+		$data['oauth-props-url']        = add_query_arg( 'action', PaymentPlugins::AJAX_OAUTH_PROPS_ACTION, admin_url( 'admin-ajax.php' ) );
+		$data['oauth-props-nonce']      = wp_create_nonce( PaymentPlugins::AJAX_OAUTH_PROPS_ACTION );
+		$data['oauth-props-action']     = PaymentPlugins::AJAX_OAUTH_PROPS_ACTION;
+
+		$data['paypal-onboarding-nonce'] = '';
+
+		if ( class_exists( '\WooCommerce\PayPalCommerce\Onboarding\Endpoint\LoginSellerEndpoint' ) ) {
+			$data['paypal-onboarding-nonce'] = wp_create_nonce( \WooCommerce\PayPalCommerce\Onboarding\Endpoint\LoginSellerEndpoint::nonce() );
+		}
+
+		$data['ajaxTelemetry'] = [
+			'started'   => [
+				'action' => PaymentPlugins::AJAX_STARTED_ACTION,
+				'nonce'  => wp_create_nonce( PaymentPlugins::AJAX_STARTED_ACTION ),
+			],
+			'completed' => [
+				'action' => PaymentPlugins::AJAX_COMPLETED_ACTION,
+				'nonce'  => wp_create_nonce( PaymentPlugins::AJAX_COMPLETED_ACTION ),
+			],
+		];
+
+		return $data;
+	}
+
+	/**
 	 * Returns an array with the config for the app first render.
 	 *
 	 * @return array The UI Data information.
@@ -638,7 +753,9 @@ class Setup {
 			'logo'             => 'storebuilderapp-logo.svg',
 			'api_url'          => rest_url( 'nexcess/v1/storebuilderapp' ),
 			'site_url'         => site_url(),
+			'logout_url'       => wp_logout_url(),
 			'assets_url'       => PLUGIN_URL . '/nexcess-mapps/assets/',
+			'support_url'      => esc_url( 'https://www.nexcess.net/support/' ),
 			'storebuilder_url' => admin_url( 'admin.php?page=storebuilderapp' ),
 			'setup'            => [
 				'props' => $this->getSetupProps(),
@@ -649,7 +766,16 @@ class Setup {
 			'look_and_feel'    => [
 				'props' => $this->getLookAndFeelProps(),
 			],
+			'site_domain'      => [
+				'props' => $this->getSiteDomainProps(),
+			],
+			'shipping'         => [
+				'props' => $this->getShippingConfigurationProps(),
+			],
 			'wp101_api_key'    => $this->checkWp101ApiKey(),
+			'payments'         => [
+				'props' => $this->getPaymentProps(),
+			],
 		];
 	}
 }

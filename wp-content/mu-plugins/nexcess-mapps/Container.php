@@ -13,6 +13,7 @@ use Nexcess\MAPPS\Exceptions\ContainerException;
 use Nexcess\MAPPS\Exceptions\ContainerNotFoundException;
 use Nexcess\MAPPS\Integrations\Integration;
 use Nexcess\Vendor;
+use StellarWP\PluginFramework;
 
 class Container {
 
@@ -116,8 +117,8 @@ class Container {
 	/**
 	 * Create or replace an existing definition.
 	 *
-	 * @param string        $id       The identifier.
-	 * @param callable|null $callback The callback used to build the service.
+	 * @param string               $id       The identifier.
+	 * @param object|callable|null $callback The callback used to build the service.
 	 *
 	 * @return self
 	 */
@@ -189,7 +190,11 @@ class Container {
 			 * ...................................
 			 */
 			Commands\AffiliateWP::class                 => null,
-			Commands\BrainstormForce::class             => null,
+			Commands\BrainstormForce::class             => function ( $app ) {
+				return new Commands\BrainstormForce(
+					$app->get( Integrations\BrainstormForce::class )
+				);
+			},
 			Commands\Cache::class                       => function ( $app ) {
 				return new Commands\Cache(
 					$app->get( Integrations\ObjectCache::class ),
@@ -213,24 +218,21 @@ class Container {
 					$app->get( Services\MigrationCleaner::class )
 				);
 			},
+			Commands\ObjectCachePro::class          => function ( $app ) {
+				return new Commands\ObjectCachePro(
+					$app->get( Plugins\ObjectCachePro::class ),
+					$app->get( Integrations\PluginInstaller::class )
+				);
+			},
 			Commands\PerformanceMonitor::class          => function ( $app ) {
 				return new Commands\PerformanceMonitor(
 					$app->get( Settings::class ),
 					$app->get( Integrations\PerformanceMonitor::class ),
-					$app->get( Services\FeatureFlags::class )
+					$app->get( ContainerPF::class )->get( PluginFramework\Services\FeatureFlags::class )
 				);
 			},
 			Commands\PlatformTesting::class             => null,
 			Commands\Qubely::class                      => null,
-			Commands\QuickStart::class                  => function ( $app ) {
-				return new Commands\QuickStart(
-					$app->get( Settings::class ),
-					$app->get( Integrations\QuickStart::class ),
-					$app->get( Integrations\SimpleAdminMenu::class ),
-					$app->get( Services\Logger::class ),
-					$app->get( Services\Importers\KadenceImporter::class )
-				);
-			},
 			Commands\Setup::class                       => function ( $app ) {
 				return new Commands\Setup(
 					$app->get( Settings::class ),
@@ -255,13 +257,9 @@ class Container {
 					$app->get( Integrations\PageCache::class )
 				);
 			},
-			Commands\VisualComparison::class            => function ( $app ) {
-				return new Commands\VisualComparison(
-					$app->get( Integrations\VisualComparison::class )
-				);
-			},
 			Commands\WooCommerce::class                 => function ( $app ) {
 				return new Commands\WooCommerce(
+					$app->get( Integrations\SalesPerformanceMonitor::class ),
 					$app->get( Integrations\WooCommerceCartFragments::class )
 				);
 			},
@@ -299,7 +297,18 @@ class Container {
 					$app->get( Services\Options::class )
 				);
 			},
-			Integrations\Cache::class                         => null,
+			Integrations\AutoLogin::class                     => function ( $app ) {
+				return new Integrations\AutoLogin(
+					$app->get( Services\MappsApiClient::class )
+				);
+			},
+			Integrations\BrainstormForce::class               => null,
+			Integrations\Cache::class                 => function ( $app ) {
+				return new Integrations\Cache(
+					$app->get( Services\AdminBar::class ),
+					$app->get( Services\MappsApiClient::class )
+				);
+			},
 			Integrations\Cron::class                          => function ( $app ) {
 				return new Integrations\Cron(
 					$app->get( Services\AdminBar::class ),
@@ -312,7 +321,7 @@ class Container {
 			Integrations\DomainChanges::class                 => function ( $app ) {
 				return new Integrations\DomainChanges(
 					$app->get( Settings::class ),
-					$app->get( Support\DNS::class )
+					$app->get( Services\Domain::class )
 				);
 			},
 			Integrations\ErrorHandling::class                 => function ( $app ) {
@@ -324,12 +333,18 @@ class Container {
 			Integrations\Feedback::class                      => [ $this, 'buildIntegration' ],
 			Integrations\Iconic::class                        => null,
 			Integrations\Jetpack::class                       => [ $this, 'buildIntegration' ],
+			Integrations\LegacyLicenseMigration::class        => function ( $app ) {
+				return new Integrations\LegacyLicenseMigration(
+					$app->get( Services\Installer::class ),
+					$app->get( Integrations\BrainstormForce::class )
+				);
+			},
 			Integrations\Maintenance::class                   => function ( $app ) {
 				return new Integrations\Maintenance(
 					$app->get( Services\DropIn::class ),
 					$app->get( Services\MigrationCleaner::class ),
 					$app->get( Integrations\WooCommerceAutomatedTesting::class ),
-					$app->get( Services\FeatureFlags::class )
+					$app->get( ContainerPF::class )->get( PluginFramework\Services\FeatureFlags::class )
 				);
 			},
 			Integrations\ObjectCache::class                   => function ( $app ) {
@@ -350,10 +365,10 @@ class Container {
 			Integrations\PerformanceMonitor::class            => function( $app ) {
 				return new Integrations\PerformanceMonitor(
 					$app->get( Settings::class ),
-					$app->get( Integrations\VisualComparison::class ),
+					$app->get( ContainerPF::class )->get( Modules\VisualComparison::class ),
 					$app->get( Services\Managers\RouteManager::class ),
 					$app->get( Services\Logger::class ),
-					$app->get( Services\FeatureFlags::class ),
+					$app->get( ContainerPF::class )->get( PluginFramework\Services\FeatureFlags::class ),
 					$app->get( Services\Options::class )
 				);
 			},
@@ -363,7 +378,13 @@ class Container {
 					$app->get( Services\Managers\PluginConfigManager::class )
 				);
 			},
-			Integrations\PluginInstaller::class               => null,
+			Integrations\PluginInstaller::class               => function( $app ) {
+				return new Integrations\PluginInstaller(
+					$app->get( Settings::class ),
+					$app->get( Services\Logger::class ),
+					$app->get( ContainerPF::class )->get( PluginFramework\Services\FeatureFlags::class )
+				);
+			},
 			Integrations\QuickStart::class                    => function ( $app ) {
 				return new Integrations\QuickStart(
 					$app->get( Settings::class ),
@@ -394,6 +415,12 @@ class Container {
 					$this->get( Services\Managers\RouteManager::class )
 				);
 			},
+			Integrations\SalesPerformanceMonitor::class            => function( $app ) {
+				return new Integrations\SalesPerformanceMonitor(
+					$app->get( Services\Options::class ),
+					$app->get( Settings::class )
+				);
+			},
 			Integrations\SimpleAdminMenu::class               => function( $app ) {
 				return new Integrations\SimpleAdminMenu(
 					$app->get( Settings::class ),
@@ -421,55 +448,11 @@ class Container {
 			Integrations\StoreBuilder::class                  => function ( $app ) {
 				return new Integrations\StoreBuilder(
 					$app->get( Settings::class ),
-					$app->get( Services\Importers\AttachmentImporter::class ),
 					$app->get( Services\Importers\WooCommerceProductImporter::class ),
-					$app->get( Services\AdminBar::class ),
-					$app->get( Services\Options::class )
+					$app->get( Services\Domain::class )
 				);
 			},
-			Integrations\StoreBuilder\LookAndFeel::class      => function ( $app ) {
-				return new Integrations\StoreBuilder\LookAndFeel(
-					$app->get( Integrations\StoreBuilder\StoreBuilderFTC::class )
-				);
-			},
-			Integrations\StoreBuilder\AdminPointer::class     => function ( $app ) {
-				return new Integrations\StoreBuilder\AdminPointer(
-					$app->get( Settings::class ),
-					$app->get( Integrations\StoreBuilder\StoreBuilderFTC::class )
-				);
-			},
-			Integrations\StoreBuilder\Setup::class            => function ( $app ) {
-				return new Integrations\StoreBuilder\Setup(
-					$app->get( Integrations\StoreBuilder\StoreBuilderFTC::class ),
-					$app->get( Integrations\StoreBuilder\LookAndFeel::class )
-				);
-			},
-			Integrations\StoreBuilder\AutoLaunch::class       => function ( $app ) {
-				return new Integrations\StoreBuilder\AutoLaunch(
-					$app->get( Settings::class ),
-					$app->get( Integrations\StoreBuilder\StoreBuilderFTC::class )
-				);
-			},
-			Integrations\StoreBuilderApp::class               => function ( $app ) {
-				return new Integrations\StoreBuilderApp(
-					$app->get( Settings::class ),
-					$app->get( Services\Managers\RouteManager::class ),
-					$app->get( Integrations\StoreBuilder\Setup::class ),
-					$app->get( Integrations\StoreBuilder\StoreBuilderUser::class )
-				);
-			},
-			Integrations\Support::class                       => [ $this, 'buildIntegration' ],
-			Integrations\SupportUsers::class                  => null,
-			Integrations\Telemetry::class                     => [ $this, 'buildIntegration' ],
 			Integrations\Themes::class                        => null,
-			Integrations\Updates::class                       => [ $this, 'buildIntegration' ],
-			Integrations\Varnish::class                       => null,
-			Integrations\VisualComparison::class              => function ( $app ) {
-				return new Integrations\VisualComparison(
-					$app->get( Settings::class ),
-					$app->get( Services\Logger::class )
-				);
-			},
 			Integrations\WooCommerce::class                   => [ $this, 'buildIntegration' ],
 			Integrations\WooCommerceAutomatedTesting::class => function ( $app ) {
 				return new Integrations\WooCommerceAutomatedTesting(
@@ -485,15 +468,20 @@ class Container {
 					$app->get( Services\Options::class )
 				);
 			},
-			Integrations\WooCommerceUpperLimits::class        => [ $this, 'buildIntegration' ],
-			Integrations\StoreBuilder\StoreBuilderFTC::class => null,
-			Integrations\StoreBuilder\StoreBuilderUser::class => null,
 
 			/**
 			 * ...................................
 			 * Plugins                           :
 			 * ...................................
 			 */
+			Plugins\ObjectCachePro::class => function ( $app ) {
+				return new Plugins\ObjectCachePro(
+					$app->get( Settings::class ),
+					$app->get( Services\DropIn::class ),
+					$app->get( Services\WPConfig::class ),
+					$app->get( Integrations\ObjectCache::class )
+				);
+			},
 			Plugins\RedisCache::class => function ( $app ) {
 				return new Plugins\RedisCache(
 					$app->get( Settings::class ),
@@ -526,41 +514,6 @@ class Container {
 					$app->get( Integrations\WooCommerceAutomatedTesting::class )
 				);
 			},
-			Routes\StoreBuilderAppRoute::class             => function ( $app ) {
-				return new Routes\StoreBuilderAppRoute(
-					$app->get( Integrations\StoreBuilder\Setup::class )
-				);
-			},
-			Routes\StoreBuilderAppFTC::class               => function ( $app ) {
-				return new Routes\StoreBuilderAppFTC(
-					$app->get( Integrations\StoreBuilder\StoreBuilderFTC::class )
-				);
-			},
-			Routes\StoreBuilderAppFTCPost::class           => function ( $app ) {
-				return new Routes\StoreBuilderAppFTCPost(
-					$app->get( Integrations\StoreBuilder\StoreBuilderFTC::class )
-				);
-			},
-			Routes\StoreBuilderAppLookAndFeel::class       => function ( $app ) {
-				return new Routes\StoreBuilderAppLookAndFeel(
-					$app->get( Integrations\StoreBuilder\LookAndFeel::class )
-				);
-			},
-			Routes\StoreBuilderAppLookAndFeelPost::class   => function ( $app ) {
-				return new Routes\StoreBuilderAppLookAndFeelPost(
-					$app->get( Integrations\StoreBuilder\LookAndFeel::class )
-				);
-			},
-			Routes\StoreBuilderAppFontSync::class   => function ( $app ) {
-				return new Routes\StoreBuilderAppFontSync(
-					$app->get( Integrations\StoreBuilder\LookAndFeel::class )
-				);
-			},
-			Routes\StoreBuilderAppUsername::class          => function ( $app ) {
-				return new Routes\StoreBuilderAppUsername(
-					$app->get( Integrations\StoreBuilder\StoreBuilderUser::class )
-				);
-			},
 
 			/**
 			 * ...................................
@@ -568,14 +521,14 @@ class Container {
 			 * ...................................
 			 */
 			Services\AdminBar::class         => null,
+			Services\Domain::class           => function ( $app ) {
+				return new Services\Domain(
+					$app->get( Services\MappsApiClient::class )
+				);
+			},
 			Services\DropIn::class           => function ( $app ) {
 				return new Services\DropIn(
 					$app->get( Services\Logger::class )
-				);
-			},
-			Services\FeatureFlags::class     => function ( $app ) {
-				return new Services\FeatureFlags(
-					$app->get( Settings::class )
 				);
 			},
 			Services\Logger::class           => null,
@@ -583,6 +536,11 @@ class Container {
 				return new Services\MigrationCleaner(
 					$app->get( \WP_Filesystem_Base::class ),
 					$app->get( Services\WPConfig::class )
+				);
+			},
+			Services\MappsApiClient::class   => function ( $app ) {
+				return new Services\MappsApiClient(
+					$app->get( Settings::class )
 				);
 			},
 			Services\Installer::class        => function ( $app ) {

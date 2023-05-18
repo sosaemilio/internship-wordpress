@@ -7,8 +7,13 @@ $baseDir = dirname(dirname($vendorDir));
 
 return array(
     'cweagans\\Composer\\' => array($vendorDir . '/cweagans/composer-patches/src'),
+    'Tribe\\WME\\Sitebuilder\\' => array($vendorDir . '/moderntribe/wme-sitebuilder/wme-sitebuilder'),
     'Stellarwp\\PluginInstaller\\' => array($vendorDir . '/stellarwp/stellarwp-plugin-installer/src'),
+    'StellarWP\\PluginFramework\\' => array($vendorDir . '/stellarwp/plugin-framework/src'),
+    'StellarWP\\Container\\' => array($vendorDir . '/stellarwp/container/src'),
+    'StellarWP\\AdminNotice\\' => array($vendorDir . '/stellarwp/admin-notice/src'),
     'Psr\\Log\\' => array($vendorDir . '/psr/log/Psr/Log'),
+    'Psr\\Container\\' => array($vendorDir . '/psr/container/src'),
     'Nexcess\\Vendor\\' => array($vendorDir . '/wp-cli/wp-config-transformer/src'),
     'Nexcess\\MAPPS\\' => array($baseDir . '/nexcess-mapps'),
     'LiquidWeb\\HtaccessValidator\\' => array($vendorDir . '/liquidweb/htaccess-validator/src'),

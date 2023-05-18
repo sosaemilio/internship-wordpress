@@ -29,16 +29,18 @@ use Nexcess\MAPPS\Integrations\PerformanceMonitor\Query\PageQuery;
 use Nexcess\MAPPS\Integrations\PerformanceMonitor\Query\ReportQuery;
 use Nexcess\MAPPS\Integrations\PerformanceMonitor\Query\SiteChangeQuery;
 use Nexcess\MAPPS\Integrations\PerformanceMonitor\UIData;
+use Nexcess\MAPPS\Modules\Telemetry;
+use Nexcess\MAPPS\Modules\VisualComparison;
 use Nexcess\MAPPS\Routes\PerformanceMonitorAuthRoute;
 use Nexcess\MAPPS\Routes\PerformanceMonitorDataRoute;
 use Nexcess\MAPPS\Routes\PerformanceMonitorMuteRoute;
 use Nexcess\MAPPS\Routes\PerformanceMonitorReportRoute;
-use Nexcess\MAPPS\Services\FeatureFlags;
 use Nexcess\MAPPS\Services\Logger;
 use Nexcess\MAPPS\Services\Managers\RouteManager;
 use Nexcess\MAPPS\Services\Options;
 use Nexcess\MAPPS\Settings;
 use Nexcess\MAPPS\Support\Helpers;
+use StellarWP\PluginFramework\Services\FeatureFlags;
 
 class PerformanceMonitor extends Integration {
 	use HasAdminPages;
@@ -93,12 +95,17 @@ class PerformanceMonitor extends Integration {
 	const OPTION_NAME = 'nexcess_mapps_performance_monitor';
 
 	/**
+	 * The key used in the telemetry report which contains the relevant integration info.
+	 */
+	const TELEMETRY_FEATURE_KEY = 'performance_monitor';
+
+	/**
 	 * @var \Nexcess\MAPPS\Integrations\PerformanceMonitor\Api
 	 */
 	protected $api;
 
 	/**
-	 * @var \Nexcess\MAPPS\Services\FeatureFlags
+	 * @var \StellarWP\PluginFramework\Services\FeatureFlags
 	 */
 	protected $featureFlags;
 
@@ -128,17 +135,17 @@ class PerformanceMonitor extends Integration {
 	protected $uiData;
 
 	/**
-	 * @var \Nexcess\MAPPS\Integrations\VisualComparison
+	 * @var \Nexcess\MAPPS\Modules\VisualComparison
 	 */
 	protected $visualComparison;
 
 	/**
-	 * @param \Nexcess\MAPPS\Settings                       $settings
-	 * @param \Nexcess\MAPPS\Integrations\VisualComparison  $visual_comparison
-	 * @param \Nexcess\MAPPS\Services\Managers\RouteManager $route_manager
-	 * @param \Nexcess\MAPPS\Services\Logger                $logger
-	 * @param \Nexcess\MAPPS\Services\FeatureFlags          $feature_flags
-	 * @param \Nexcess\MAPPS\Services\Options               $options
+	 * @param \Nexcess\MAPPS\Settings                          $settings
+	 * @param \Nexcess\MAPPS\Modules\VisualComparison          $visual_comparison
+	 * @param \Nexcess\MAPPS\Services\Managers\RouteManager    $route_manager
+	 * @param \Nexcess\MAPPS\Services\Logger                   $logger
+	 * @param \StellarWP\PluginFramework\Services\FeatureFlags $feature_flags
+	 * @param \Nexcess\MAPPS\Services\Options                  $options
 	 */
 	public function __construct(
 		Settings $settings,
@@ -181,6 +188,17 @@ class PerformanceMonitor extends Integration {
 		add_action( 'Nexcess\MAPPS\Options\Update', [ $this, 'maybeClearCronEvents' ], 10, 3 );
 
 		$this->registerOption();
+	}
+
+	/**
+	 * Retrieve all filters for the integration.
+	 *
+	 * @return array[]
+	 */
+	protected function getFilters() {
+		return [
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'addFeatureToTelemetry' ] ],
+		];
 	}
 
 	/**
@@ -829,5 +847,18 @@ class PerformanceMonitor extends Integration {
 			'name'     => $name,
 			'location' => $location,
 		];
+	}
+
+	/**
+	 * Adds feature integration information to the telemetry report.
+	 *
+	 * @param array[] $report The gathered report data.
+	 *
+	 * @return array[] The $report array.
+	 */
+	public function addFeatureToTelemetry( array $report ) {
+		$report['features'][ self::TELEMETRY_FEATURE_KEY ] = $this->getPerformanceMonitorSetting();
+
+		return $report;
 	}
 }

@@ -7,7 +7,7 @@
  */
 
 use Nexcess\MAPPS\Integrations\Dashboard;
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 
 // Fetch the company name.
 $company_name = Branding::getCompanyName();

@@ -5,12 +5,13 @@ namespace Nexcess\MAPPS\Services;
 use Nexcess\MAPPS\Concerns\InvokesCli;
 use Nexcess\MAPPS\Concerns\MakesHttpRequests;
 use Nexcess\MAPPS\Concerns\QueriesMAPPS;
-use Nexcess\MAPPS\Exceptions\ConsoleException;
-use Nexcess\MAPPS\Exceptions\InstallationException;
-use Nexcess\MAPPS\Exceptions\LicensingException;
-use Nexcess\MAPPS\Exceptions\MappsApiException;
 use Nexcess\MAPPS\Settings;
+use Nexcess\MAPPS\Support\CacheRemember;
 use Nexcess\MAPPS\Support\ConsoleCommand;
+use StellarWP\PluginFramework\Exceptions\ConsoleException;
+use StellarWP\PluginFramework\Exceptions\InstallationException;
+use StellarWP\PluginFramework\Exceptions\LicensingException;
+use StellarWP\PluginFramework\Exceptions\MappsApiException;
 
 class Installer {
 	use InvokesCli;
@@ -46,14 +47,14 @@ class Installer {
 	/**
 	 * Retrieve a list of installable plugins.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\MappsApiException If an unexpected response is returned
-	 *                                                     from the MAPPS API.
+	 * @throws \StellarWP\PluginFramework\Exceptions\MappsApiException If an unexpected response is returned
+	 *                                                                 from the MAPPS API.
 	 *
 	 * @return object[] An array of installable plugins.
 	 */
 	public function getAvailablePlugins() {
 		try {
-			$body = remember_transient( self::AVAILABLE_PLUGINS_CACHE_KEY, function () {
+			$body = CacheRemember::remember_transient( self::AVAILABLE_PLUGINS_CACHE_KEY, function () {
 				return $this->validateHttpResponse( $this->mappsApi( 'v1/app-plugin' ), 200 );
 			}, 5 * MINUTE_IN_SECONDS );
 		} catch ( \Exception $e ) {
@@ -69,8 +70,8 @@ class Installer {
 	 * The API endpoint will use the MAPPS API token, and the results will change based on the API
 	 * token used.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\MappsApiException If an unexpected response is returned
-	 *                                                     from the MAPPS API.
+	 * @throws \StellarWP\PluginFramework\Exceptions\MappsApiException If an unexpected response is returned
+	 *                                                                 from the MAPPS API.
 	 *
 	 * @return object[] An array of plugins that should be pre-installed. This may be empty if no
 	 *                  plugins should be pre-configured.
@@ -90,8 +91,8 @@ class Installer {
 	 *
 	 * @param int $id The plugin ID, derived from $this->getAvailablePlugins().
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\MappsApiException If an unexpected response is returned
-	 *                                                     from the MAPPS API.
+	 * @throws \StellarWP\PluginFramework\Exceptions\MappsApiException If an unexpected response is returned
+	 *                                                                 from the MAPPS API.
 	 *
 	 * @return object The plugin details.
 	 */
@@ -111,7 +112,7 @@ class Installer {
 	 *
 	 * @param int $id The plugin ID, derived from $this->getAvailablePlugins().
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\MappsApiException If an unexpected response is returned.
+	 * @throws \StellarWP\PluginFramework\Exceptions\MappsApiException If an unexpected response is returned.
 	 *
 	 * @return object The licensing instructions.
 	 */
@@ -133,7 +134,7 @@ class Installer {
 	 *
 	 * @param int $id The plugin/theme ID to install.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InstallationException If the installation request fails.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InstallationException If the installation request fails.
 	 *
 	 * @return bool Will return true if nothing went wrong during installation.
 	 */
@@ -170,7 +171,7 @@ class Installer {
 	 *
 	 * @param int $id The plugin/theme ID to install.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\LicensingException If the licensing request fails.
+	 * @throws \StellarWP\PluginFramework\Exceptions\LicensingException If the licensing request fails.
 	 *
 	 * @return bool Will return true if nothing went wrong during licensing.
 	 */
@@ -209,7 +210,7 @@ class Installer {
 	 *
 	 * @param object $instructions The instructions to execute.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InstallationException If the installation step fails.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InstallationException If the installation step fails.
 	 */
 	protected function handleInstallationStep( $instructions ) {
 		$command = false;
@@ -247,35 +248,37 @@ class Installer {
 	 *
 	 * @param object $instructions The instructions to execute.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\LicensingException If the licensing step fails.
+	 * @throws \StellarWP\PluginFramework\Exceptions\LicensingException If the licensing step fails.
 	 */
 	protected function handleLicensingStep( $instructions ) {
 		// Run a WP-CLI command.
 		if ( ! empty( $instructions->wp_cli ) ) {
-			try {
-				// The API currently returns the wrong command for licensing Brainstorm Force plugins.
-				$command = str_replace(
-					'brainstormforce license',
-					'nxmapps brainstormforce',
-					$instructions->wp_cli
-				);
+			foreach ( (array) $instructions->wp_cli as $cli_command ) {
+				try {
+					// The API currently returns the wrong command for licensing Brainstorm Force plugins.
+					$command = str_replace(
+						'brainstormforce license',
+						'nxmapps brainstormforce',
+						$cli_command
+					);
 
-				// Ensure commands are prefixed with "wp ".
-				if ( 'wp ' !== substr( trim( $command ), 0, 3 ) ) {
-					$command = 'wp ' . trim( $command );
+					// Ensure commands are prefixed with "wp ".
+					if ( 'wp ' !== substr( trim( $command ), 0, 3 ) ) {
+						$command = 'wp ' . trim( $command );
+					}
+
+					$this->makeCommand( $command )
+						->setPriority( 10 )
+						->setTimeout( 60 )
+						->execute()
+						->wasSuccessful( true );
+				} catch ( ConsoleException $e ) {
+					throw new LicensingException( sprintf(
+						/* Translators: %1$s is the error message. */
+						__( 'Unable to license plugin: %1$s', 'nexcess-mapps' ),
+						$e->getMessage()
+					), $e->getCode(), $e );
 				}
-
-				$this->makeCommand( $command )
-					->setPriority( 10 )
-					->setTimeout( 60 )
-					->execute()
-					->wasSuccessful( true );
-			} catch ( ConsoleException $e ) {
-				throw new LicensingException( sprintf(
-					/* Translators: %1$s is the error message. */
-					__( 'Unable to license plugin: %1$s', 'nexcess-mapps' ),
-					$e->getMessage()
-				), $e->getCode(), $e );
 			}
 		}
 

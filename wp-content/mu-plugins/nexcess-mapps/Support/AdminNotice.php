@@ -6,8 +6,8 @@
 
 namespace Nexcess\MAPPS\Support;
 
-use Nexcess\MAPPS\Exceptions\ImmutableValueException;
 use Nexcess\MAPPS\Integrations\Admin;
+use StellarWP\PluginFramework\Exceptions\ImmutableValueException;
 
 /**
  * @property-read bool        $alt            Whether or not to include the "notice-alt" class for
@@ -149,7 +149,7 @@ class AdminNotice {
 	 * @param string $prop  The property name.
 	 * @param mixed  $value The value that is being assigned.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ImmutableValueException If the object is immutable.
+	 * @throws \StellarWP\PluginFramework\Exceptions\ImmutableValueException If the object is immutable.
 	 */
 	public function __set( $prop, $value ) {
 		throw new ImmutableValueException( sprintf(

@@ -3,6 +3,7 @@
 namespace Nexcess\MAPPS\Integrations\StoreBuilder;
 
 use Nexcess\MAPPS\Concerns\HasHooks;
+use Nexcess\MAPPS\Integrations\StoreBuilderApp;
 
 class StoreBuilderUser {
 	use HasHooks;
@@ -44,6 +45,8 @@ class StoreBuilderUser {
 			$password = sanitize_text_field( $_REQUEST['password'] );
 			wp_set_password( $password, $user->ID );
 			$update = true;
+
+			do_action( 'storebuilder_user_password_updated', $user->ID );
 		}
 
 		if ( isset( $_REQUEST['username'] ) ) {
@@ -60,9 +63,22 @@ class StoreBuilderUser {
 
 		if ( $update ) {
 			clean_user_cache( $user->ID );
+
 			$user = wp_set_current_user( $user->ID );
 			wp_set_auth_cookie( $user->ID );
+
 			do_action( 'wp_login', $user->user_login, $user );
+
+			$url        = admin_url( 'admin.php' );
+			$query_args = [ 'page' => StoreBuilderApp::ADMIN_MENU_SLUG ];
+
+			if ( isset( $_REQUEST['wizard'] ) ) {
+				$query_args['wizard'] = htmlspecialchars( $_REQUEST['wizard'] );
+			}
+
+			wp_safe_redirect( add_query_arg( $query_args, $url ) );
+
+			exit;
 		}
 	}
 

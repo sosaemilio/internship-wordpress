@@ -7,7 +7,7 @@
 namespace Nexcess\MAPPS\HealthChecks;
 
 use Nexcess\MAPPS\Support\AdminNotice;
-use Nexcess\MAPPS\Support\Branding;
+use StellarWP\PluginFramework\Support\Branding;
 
 class CronConstant extends HealthCheck {
 

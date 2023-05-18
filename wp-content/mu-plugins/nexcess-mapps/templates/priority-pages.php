@@ -5,7 +5,7 @@
  * @var \Nexcess\MAPPS\Settings $settings The current settings object.
  */
 
-use Nexcess\MAPPS\Integrations\VisualComparison;
+use Nexcess\MAPPS\Modules\VisualComparison;
 
 ?>
 

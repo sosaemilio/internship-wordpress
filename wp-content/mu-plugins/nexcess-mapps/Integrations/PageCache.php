@@ -12,15 +12,16 @@ use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\HasWordPressDependencies;
 use Nexcess\MAPPS\Concerns\ManagesHtaccess;
 use Nexcess\MAPPS\Concerns\ManagesPermalinks;
-use Nexcess\MAPPS\Exceptions\ConfigException;
-use Nexcess\MAPPS\Exceptions\FilesystemException;
+use Nexcess\MAPPS\Modules\Telemetry;
 use Nexcess\MAPPS\Services\DropIn;
 use Nexcess\MAPPS\Services\WPConfig;
 use Nexcess\MAPPS\Settings;
 use Nexcess\MAPPS\Support\AdminNotice;
 use Nexcess\MAPPS\Support\Apache;
-use Nexcess\MAPPS\Support\Branding;
 use Nexcess\MAPPS\Support\Filesystem;
+use StellarWP\PluginFramework\Exceptions\FilesystemException;
+use StellarWP\PluginFramework\Exceptions\WPConfigException;
+use StellarWP\PluginFramework\Support\Branding;
 
 use const Nexcess\MAPPS\VENDOR_DIR;
 
@@ -85,6 +86,31 @@ class PageCache extends Integration {
 	const HTACCESS_MARKER = 'Cache Enabler';
 
 	/**
+	 * The key used in the telemetry report which contains the relevant integration info.
+	 */
+	const TELEMETRY_FEATURE_KEY = 'page_cache';
+
+	/**
+	 * The key used to report whether the integration is enabled.
+	 */
+	const TELEMETRY_FEATURE_ENABLED_KEY = 'enabled';
+
+	/**
+	 * The key used to report whether the integration is in use.
+	 */
+	const TELEMETRY_FEATURE_IN_USE_KEY = 'in_use';
+
+	/**
+	 * The key used to report the integration provider.
+	 */
+	const TELEMETRY_FEATURE_PROVIDER_KEY = 'provider';
+
+	/**
+	 * The default provider used in the report when WP CLI does not report one, which indicates it's ours.
+	 */
+	const TELEMETRY_FEATURE_PROVIDER_DEFAULT = 'Nexcess MU Plugin';
+
+	/**
 	 * @param \Nexcess\MAPPS\Settings          $settings
 	 * @param \Nexcess\MAPPS\Services\WPConfig $wp_config
 	 * @param \Nexcess\MAPPS\Services\DropIn   $drop_in
@@ -124,6 +150,17 @@ class PageCache extends Integration {
 
 		// Otherwise, load the bundled version.
 		$this->loadPlugin( 'keycdn/cache-enabler/cache-enabler.php' );
+	}
+
+	/**
+	 * Retrieve all filters for the integration.
+	 *
+	 * @return array[]
+	 */
+	protected function getFilters() {
+		return [
+			[ Telemetry::REPORT_DATA_FILTER, [ $this, 'addFeatureToTelemetry' ] ],
+		];
 	}
 
 	/**
@@ -301,8 +338,8 @@ class PageCache extends Integration {
 	 * Since the bundled plugin doesn't have access to traditional activation hooks, explicitly run
 	 * the deactivation steps.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException     If the config file cannot be written.
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If the htaccess file cannot be read.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If the htaccess file cannot be read.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException   If the config file cannot be written.
 	 */
 	public function disablePageCache() {
 		// Explicitly set the flag in wp_options.
@@ -320,7 +357,7 @@ class PageCache extends Integration {
 			$this->config->removeConstant( 'WP_CACHE' );
 			$this->flushPageCache();
 		} catch ( \Exception $e ) {
-			throw new ConfigException( $e->getMessage(), $e->getCode(), $e );
+			throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
 		}
 	}
 
@@ -330,8 +367,8 @@ class PageCache extends Integration {
 	 * Since the bundled plugin doesn't have access to traditional activation hooks, explicitly run
 	 * the activation steps.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException     If anything goes wrong.
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If the htaccess file cannot be written.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If the htaccess file cannot be written.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException   If anything goes wrong.
 	 */
 	public function enablePageCache() {
 		// First, deactivate any known page cache plugins.
@@ -355,7 +392,7 @@ class PageCache extends Integration {
 				throw new FilesystemException( 'Unable to write rules to the Htaccess file.' );
 			}
 		} catch ( \Exception $e ) {
-			throw new ConfigException( $e->getMessage(), $e->getCode(), $e );
+			throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
 		}
 	}
 
@@ -601,7 +638,7 @@ EOT;
 	 * $this->removeCacheEnablerRewriteRules() to ensure sites aren't trying to serve from a
 	 * directory they can't read and/or write to.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\FilesystemException If something goes wrong.
+	 * @throws \StellarWP\PluginFramework\Exceptions\FilesystemException If something goes wrong.
 	 *
 	 * @return bool True if permissions were set/okay, false otherwise.
 	 */
@@ -906,5 +943,22 @@ EOT;
 		}
 
 		return (bool) preg_match( '/cache[\s\-_]enabler/i', $contents );
+	}
+
+	/**
+	 * Adds feature integration information to the telemetry report.
+	 *
+	 * @param array[] $report The gathered report data.
+	 *
+	 * @return array[] The $report array.
+	 */
+	public function addFeatureToTelemetry( array $report ) {
+		$report['features'][ self::TELEMETRY_FEATURE_KEY ] = [
+			self::TELEMETRY_FEATURE_ENABLED_KEY  => $this->isPageCacheEnabled(),
+			self::TELEMETRY_FEATURE_IN_USE_KEY   => $this->isPageCacheEnabled() && $this->isHtaccessSectionValid(),
+			self::TELEMETRY_FEATURE_PROVIDER_KEY => empty( $this->getActivePageCachePlugins() ) ? [ self::TELEMETRY_FEATURE_PROVIDER_DEFAULT ] : $this->getActivePageCachePlugins(),
+		];
+
+		return $report;
 	}
 }

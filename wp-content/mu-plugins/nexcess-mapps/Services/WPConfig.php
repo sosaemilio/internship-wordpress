@@ -6,8 +6,8 @@
 
 namespace Nexcess\MAPPS\Services;
 
-use Nexcess\MAPPS\Exceptions\ConfigException;
 use Nexcess\Vendor\WPConfigTransformer;
+use StellarWP\PluginFramework\Exceptions\WPConfigException;
 
 class WPConfig {
 
@@ -35,21 +35,21 @@ class WPConfig {
 	 * @param string  $value   The configuration value.
 	 * @param mixed[] $options Optional. Adjustments to write behavior. Default is empty.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException If the configuration cannot be written.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the configuration cannot be written.
 	 */
 	public function setConfig( $type, $name, $value, array $options = [] ) {
 		try {
 			$this->transformer->update( $type, $name, (string) $value, $options );
 		} catch ( \Exception $e ) {
 			if ( 'Unable to locate placement anchor.' !== $e->getMessage() ) {
-				throw new ConfigException( $e->getMessage(), $e->getCode(), $e );
+				throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
 			}
 
 			// If the problem was a missing anchor, try to remedy the situation.
 			try {
 				$this->restoreMissingAnchor();
 			} catch ( \Exception $e ) {
-				throw new ConfigException( sprintf(
+				throw new WPConfigException( sprintf(
 					'Unable to add missing anchor to wp-config.php file: %s',
 					$e->getMessage()
 				), $e->getCode(), $e );
@@ -77,12 +77,31 @@ class WPConfig {
 	}
 
 	/**
+	 * Retrieve the constant value in wp-config.php.
+	 *
+	 * @param string $constant The constant name.
+	 *
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the configuration cannot be written.
+	 *
+	 * @return mixed Constant value
+	 */
+	public function getConstant( $constant ) {
+		try {
+			$value = $this->transformer->get_value( 'constant', $constant );
+		} catch ( \Exception $e ) {
+			throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
+		}
+
+		return $value;
+	}
+
+	/**
 	 * Add (or update) the given constant in wp-config.php.
 	 *
 	 * @param string $constant The constant name.
 	 * @param mixed  $value    The constant value.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException If the configuration cannot be written.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the configuration cannot be written.
 	 */
 	public function setConstant( $constant, $value ) {
 		$options = [
@@ -104,13 +123,13 @@ class WPConfig {
 	 *
 	 * @param string $constant The constant name.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException If the configuration cannot be written.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the configuration cannot be written.
 	 */
 	public function removeConstant( $constant ) {
 		try {
 			$this->transformer->remove( 'constant', $constant );
 		} catch ( \Exception $e ) {
-			throw new ConfigException( $e->getMessage(), $e->getCode(), $e );
+			throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
 		}
 	}
 
@@ -132,12 +151,31 @@ class WPConfig {
 	}
 
 	/**
+	 * Retrieve the variable value in wp-config.php.
+	 *
+	 * @param string $variable The variable name.
+	 *
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the configuration cannot be read.
+	 *
+	 * @return mixed Variable value
+	 */
+	public function getVariable( $variable ) {
+		try {
+			$value = $this->transformer->get_value( 'variable', $variable );
+		} catch ( \Exception $e ) {
+			throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
+		}
+
+		return $value;
+	}
+
+	/**
 	 * Add (or update) the given variable in wp-config.php.
 	 *
 	 * @param string $variable The variable name.
 	 * @param mixed  $value    The variable value.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException If the configuration cannot be written.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the configuration cannot be written.
 	 */
 	public function setVariable( $variable, $value ) {
 		$options = [
@@ -162,13 +200,13 @@ class WPConfig {
 	 *
 	 * @param string $variable The variable name.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException If the configuration cannot be written.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the configuration cannot be written.
 	 */
 	public function removeVariable( $variable ) {
 		try {
 			$this->transformer->remove( 'variable', $variable );
 		} catch ( \Exception $e ) {
-			throw new ConfigException( $e->getMessage(), $e->getCode(), $e );
+			throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
 		}
 	}
 
@@ -182,7 +220,7 @@ class WPConfig {
 	 * The transformer will not add anything after the anchor, as this is reserved for defining
 	 * ABSPATH and loading the "wp-settings.php" file.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\ConfigException If the anchor cannot be added.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPConfigException If the anchor cannot be added.
 	 *
 	 * @return bool True if the anchor was added, false if it already exists.
 	 */
@@ -204,7 +242,7 @@ class WPConfig {
 			$pattern = '/(?:if\s*\(\s*!\s*)?(?:defined\(.+\))?\s*\{?(?:\|\|)?\s*define\(\s*["\']ABSPATH["\']/';
 
 			if ( ! preg_match( $pattern, $config, $abspath ) ) {
-				throw new ConfigException( 'Unable to find the ABSPATH definition' );
+				throw new WPConfigException( 'Unable to find the ABSPATH definition' );
 			}
 
 			// Insert the anchor just before the ABSPATH definition.
@@ -212,10 +250,10 @@ class WPConfig {
 
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_file_put_contents
 			if ( false === file_put_contents( $path, $config ) ) {
-				throw new ConfigException( 'Unable to write to wp-config.php file' );
+				throw new WPConfigException( 'Unable to write to wp-config.php file' );
 			}
 		} catch ( \Exception $e ) {
-			throw new ConfigException( $e->getMessage(), $e->getCode(), $e );
+			throw new WPConfigException( $e->getMessage(), $e->getCode(), $e );
 		}
 
 		return true;

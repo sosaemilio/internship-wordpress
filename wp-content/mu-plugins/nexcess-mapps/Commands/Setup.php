@@ -4,12 +4,12 @@ namespace Nexcess\MAPPS\Commands;
 
 use Nexcess\MAPPS\Concerns\HasCronEvents;
 use Nexcess\MAPPS\Concerns\ManagesPermalinks;
-use Nexcess\MAPPS\Exceptions\InstallationException;
-use Nexcess\MAPPS\Exceptions\MappsApiException;
-use Nexcess\MAPPS\Integrations\Telemetry;
 use Nexcess\MAPPS\Integrations\WooCommerce;
+use Nexcess\MAPPS\Modules\Telemetry;
 use Nexcess\MAPPS\Services\Installer as InstallerService;
 use Nexcess\MAPPS\Settings;
+use StellarWP\PluginFramework\Exceptions\InstallationException;
+use StellarWP\PluginFramework\Exceptions\MappsApiException;
 
 /**
  * Commands for preparing a new Nexcess Managed Apps site.
@@ -103,11 +103,6 @@ class Setup extends Command {
 		// Pre-install plugins, based on the current site's plan.
 		$this->preInstallPlugins();
 
-		// WP QuickStart (excluding StoreBuilder).
-		if ( $this->settings->is_quickstart && ! $this->settings->is_storebuilder ) {
-			$this->wp( 'nxmapps quickstart build' );
-		}
-
 		// Managed WooCommerce.
 		if ( $this->settings->is_mwch_site ) {
 			$this->woocommerce();
@@ -148,8 +143,6 @@ class Setup extends Command {
 		if ( $this->settings->is_storebuilder ) {
 			$this->line( '- Ingesting content from StoreBuilder' )
 				->wp( 'nxmapps storebuilder build' );
-		} elseif ( ! $this->settings->is_quickstart ) {
-			$this->wp( 'theme install --activate kadence' );
 		}
 
 		$this->log( '- Creating default pages' );
@@ -229,7 +222,7 @@ class Setup extends Command {
 		 *
 		 * @link https://wordpress.org/plugins/wpforms-lite/
 		 */
-		if ( ! $this->settings->is_mwch_site && ! $this->settings->is_quickstart ) {
+		if ( ! $this->settings->is_mwch_site ) {
 			$this->wp( 'plugin install wpforms-lite' );
 		}
 	}

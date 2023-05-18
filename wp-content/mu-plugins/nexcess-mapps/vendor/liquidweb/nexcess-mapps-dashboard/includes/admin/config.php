@@ -91,7 +91,7 @@ function disable_update_args( $request, $endpoint ) {
 	// Remove the plugin from the list.
 	unset( $dataset['plugins'][ Core\PLUGIN ] );
 
-	if ( ! isset( $dataset['active'] ) ) {
+	if ( ! isset( $dataset['active'] ) || ! is_array( $dataset['active'] ) ) {
 		$dataset['active'] = [];
 	} elseif ( ! empty( $dataset['active'] ) && is_array( $dataset['active'] ) ) {
 		unset( $dataset['active'][ array_search( Core\PLUGIN, $dataset['active'] ) ] );

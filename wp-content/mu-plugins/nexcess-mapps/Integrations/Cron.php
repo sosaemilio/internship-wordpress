@@ -7,10 +7,10 @@
 namespace Nexcess\MAPPS\Integrations;
 
 use Nexcess\MAPPS\Concerns\HasHooks;
-use Nexcess\MAPPS\Exceptions\RequestException;
 use Nexcess\MAPPS\Services\AdminBar;
 use Nexcess\MAPPS\Services\WPConfig;
 use Nexcess\MAPPS\Support\AdminNotice;
+use StellarWP\PluginFramework\Exceptions\RequestException;
 
 class Cron extends Integration {
 	use HasHooks;
@@ -88,7 +88,7 @@ class Cron extends Integration {
 	 *
 	 * @type string $_wpnonce The nonce for action "mapps_add_disable_wp_cron_constant".
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\RequestException If the nonce is invalid.
+	 * @throws \StellarWP\PluginFramework\Exceptions\RequestException If the nonce is invalid.
 	 */
 	public function addDisableWpCronConstant() {
 		try {

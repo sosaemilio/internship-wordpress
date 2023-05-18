@@ -2,9 +2,9 @@
 
 namespace Nexcess\MAPPS\Commands;
 
-use Nexcess\MAPPS\Exceptions\ConfigException;
 use Nexcess\MAPPS\Integrations\ObjectCache;
 use Nexcess\MAPPS\Integrations\PageCache;
+use StellarWP\PluginFramework\Exceptions\WPConfigException;
 
 use function WP_CLI\Utils\get_flag_value;
 
@@ -72,15 +72,6 @@ class Cache extends Command {
 				->halt( 1 );
 		}
 
-		// Enable object caching.
-		if ( $all || in_array( 'object', $args, true ) ) {
-			$this->step( 'Enabling object caching' );
-			$this->wp( 'plugin install --activate redis-cache' );
-			$this->objectCache->installObjectCacheDropIn();
-
-			$enabled[] = 'object';
-		}
-
 		// Enable page caching.
 		if ( $all || in_array( 'page', $args, true ) ) {
 			$this->step( 'Enabling page caching' );
@@ -88,7 +79,7 @@ class Cache extends Command {
 			try {
 				$this->pageCache->enablePageCache();
 				$enabled[] = 'page';
-			} catch ( ConfigException $e ) {
+			} catch ( WPConfigException $e ) {
 				$this->error( 'Unable to enable page caching: ' . $e->getMessage(), false );
 			}
 		}
@@ -140,7 +131,7 @@ class Cache extends Command {
 		// Disable object caching.
 		if ( $all || in_array( 'object', $args, true ) ) {
 			$this->step( 'Disabling object caching' );
-			$this->wp( 'plugin deactivate redis-cache wp-redis' );
+			$this->wp( 'plugin deactivate redis-cache wp-redis object-cache-pro' );
 
 			if ( file_exists( WP_CONTENT_DIR . '/object-cache.php' ) ) {
 				unlink( WP_CONTENT_DIR . '/object-cache.php' );
@@ -156,7 +147,7 @@ class Cache extends Command {
 			try {
 				$this->pageCache->disablePageCache();
 				$disabled[] = 'page';
-			} catch ( ConfigException $e ) {
+			} catch ( WPConfigException $e ) {
 				$this->error( 'Unable to disable page caching: ' . $e->getMessage(), false );
 			}
 		}
@@ -243,6 +234,7 @@ class Cache extends Command {
 				'Autoptimize'    => 'autoptimize clear',
 				'Beaver Builder' => 'beaver clearcache --all',
 				'Elementor'      => 'elementor flush_css',
+				'W3 Total Cache' => 'w3-total-cache flush minify',
 			];
 
 			$this->step( 'Flushing asset caches' );

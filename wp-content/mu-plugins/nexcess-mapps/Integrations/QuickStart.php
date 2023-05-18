@@ -10,12 +10,11 @@ use Nexcess\MAPPS\Concerns\HasAdminPages;
 use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\MakesHttpRequests;
 use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
-use Nexcess\MAPPS\Exceptions\SignatureVerificationFailedException;
 use Nexcess\MAPPS\Services\Managers\DashboardWidgetManager;
 use Nexcess\MAPPS\Settings;
 use Nexcess\MAPPS\Support\Helpers;
 use Nexcess\MAPPS\Widgets\DashboardWidget;
-use WP_User;
+use StellarWP\PluginFramework\Exceptions\SignatureVerificationFailedException;
 
 class QuickStart extends Integration {
 	use HasAdminPages;
@@ -69,7 +68,7 @@ class QuickStart extends Integration {
 	 */
 	public function shouldLoadIntegration() {
 		return $this->settings->is_quickstart
-			&& ! $this->settings->is_storebuilder;
+				&& ! $this->settings->is_storebuilder;
 	}
 
 	/**
@@ -193,7 +192,7 @@ class QuickStart extends Integration {
 	 * @param string $site_id Optional. The QuickStart site UUID. Defaults to the value
 	 *                        $this->settings->quickstart_site_id.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\WPErrorException If the HTTP request returns a non-200 status.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPErrorException If the HTTP request returns a non-200 status.
 	 *
 	 * @return mixed[] The JSON response, decoded as an array.
 	 */
@@ -226,7 +225,7 @@ class QuickStart extends Integration {
 	 * @param string $signature The signature over the HTTP body.
 	 * @param string $body      The raw HTTP body bytes which were signed.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\SignatureVerificationFailedException If the the signature is missing or can not be verified.
+	 * @throws \StellarWP\PluginFramework\Exceptions\SignatureVerificationFailedException If the the signature is missing or can not be verified.
 	 */
 	public function verifySignedResponse( $signature, $body ) {
 		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode
@@ -244,25 +243,5 @@ class QuickStart extends Integration {
 		if ( ! sodium_crypto_sign_verify_detached( Helpers::base64_urldecode( $signature ), $body, $pubkey ) ) {
 			throw new SignatureVerificationFailedException( 'The site details did not match the response signature.' );
 		}
-	}
-
-	/**
-	 * Send the welcome email to the given user.
-	 *
-	 * @param \WP_User $user The user to receive the welcome email.
-	 */
-	public function sendWelcomeEmail( WP_User $user ) {
-		wp_remote_post( $this->settings->quickstart_app_url . '/api/notifications/site-setup-complete', [
-			'headers' => [
-				'Authorization' => 'Bearer ' . $this->settings->managed_apps_token,
-			],
-			'body'    => [
-				'site_id'   => $this->settings->quickstart_site_id,
-				'email'     => $user->user_email,
-				'login_url' => wp_login_url(),
-				'reset_url' => Helpers::getResetPasswordUrl( $user ),
-				'username'  => $user->user_login,
-			],
-		] );
 	}
 }

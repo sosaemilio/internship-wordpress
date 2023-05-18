@@ -8,8 +8,8 @@ namespace Nexcess\MAPPS\Integrations;
 
 use Nexcess\MAPPS\Concerns\HasCronEvents;
 use Nexcess\MAPPS\Services\DropIn;
-use Nexcess\MAPPS\Services\FeatureFlags;
 use Nexcess\MAPPS\Services\MigrationCleaner;
+use StellarWP\PluginFramework\Services\FeatureFlags;
 
 class Maintenance extends Integration {
 	use HasCronEvents;
@@ -20,7 +20,7 @@ class Maintenance extends Integration {
 	protected $dropIn;
 
 	/**
-	 * @var \Nexcess\MAPPS\Services\FeatureFlags
+	 * @var \StellarWP\PluginFramework\Services\FeatureFlags
 	 */
 	protected $flags;
 
@@ -48,7 +48,7 @@ class Maintenance extends Integration {
 	 * @param \Nexcess\MAPPS\Services\DropIn                          $drop_in
 	 * @param \Nexcess\MAPPS\Services\MigrationCleaner                $cleaner
 	 * @param \Nexcess\MAPPS\Integrations\WooCommerceAutomatedTesting $wcat
-	 * @param \Nexcess\MAPPS\Services\FeatureFlags                    $flags
+	 * @param \StellarWP\PluginFramework\Services\FeatureFlags        $flags
 	 */
 	public function __construct(
 		DropIn $drop_in,

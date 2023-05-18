@@ -4,6 +4,228 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Version 1.40.0 - 2023-05-16
+
+### Updated
+
+* Migrated core functionality to the StellarWP Plugin Framework
+
+## Version 1.39.1 - 2023-04-25
+
+### Fixed
+
+* Issue with storebuilder installation on subdomains.
+
+## Version 1.39.0 - 2023-04-04
+
+### Fixed
+
+* WooCommerce Automated Testing should not run processes when Integration is disabled.
+* WooCommerce Sales Performance Monitor should not run processes when Integration is disabled.
+
+## Version 1.38.0 - 2023-03-15
+
+### Updated
+
+* WooCommerce Cart Fragments should not load when certain plugins are active.
+* Object Cache Pro integration to clean up lingering constants from the free Redis Cache plugin.
+
+## Version 1.37.0 - 2023-02-28
+
+### Added
+
+* WooCommerce Sales Performance Monitor.
+
+### Updated
+
+* Migration of existing/static license keys for Brainstorm products.
+
+## Version 1.36.0 - 2023-01-17
+
+### Added 
+
+* Support for Purchasing Domains from the GoLive StoreBuilder wizard.
+
+### Fixed
+
+* WooCommerce Cart Fragments setting not saving correctly.
+* Admin CSS causing extra padding for dashboard widgets.
+* Added Object Cache Pro to the `wp nxmapps cache disable` command.
+
+### Updated
+
+* Support for `NEXCESS_MAPPS_DISABLE_STOREBUILDER` constant to programmatically disabling StoreBuilder.
+* Visual Comparison Priority Pages for better visual feedback regarding broken links.
+* Removed WooCommerce Upper Limits.
+
+## Version 1.35.5 - 2022-12-01
+
+### Updated
+
+* Temporarily install Kadence Starter Themes directly from the cloudhost.
+
+
+## Version 1.35.4 - 2022-11-11
+
+### Added
+
+* Add feature flag cohorts to the telemetry data
+
+### Fixed
+
+* Fixed bug related to undefined function (`Nexcess\MAPPS\Concerns\wp_rand()`)
+
+
+## Version 1.35.1 - 2022-11-09
+
+### Updated
+
+* Improved Object Cache Pro Migration handling when updating from Redis Cache.
+
+## Version 1.35.0 - 2022-11-07
+
+### Added
+
+* Migrate Redis Cache to Object Cache Pro
+
+## Version 1.34.1 - 2022-11-02
+
+### Fixed
+
+* Do not auto launch first time configuration wizard if the site already has orders.
+* Updates language for First Time Configuration Wizard.
+
+## Version 1.34.0 - 2022-11-02
+
+### Updated
+
+* Migrate existing StoreBuilder data to Sitebuilder.
+* Hide the Object Cache Pro Settings Pointer.
+* Rebuild StoreBuilder on top of the Sitebuilder packages.
+
+### Added
+
+* Create Admin Pointers to notify users of the next steps after completing a Module.
+* Added filter to replace persistent object cache guide
+
+## Version 1.33.0 - 2022-10-05
+
+### Fixed
+
+* Handle multiple licensing instructions from the MAPPS Plugin API
+* Flush the cache after activating or deactivating a caching plugin
+
+### Updated
+
+* Added HostGator to the array and updated appropriate test.
+* Added 'w3-total-cache flush minify' to flush command
+
+### Added
+
+* Default to using Object Cache Pro as the caching plugin for the platform
+* Notify Nocworx when initial account setup is complete
+* Include StoreBuilder Wizard events in telemetry data
+
+
+## Version 1.32.0 - 2022-08-09
+
+### Fixed
+
+* Rely on built-in WordPress security restrictions for first time configuration in StoreBuilder
+
+### Updated
+
+* Install payment plugins on-demand for StoreBuilder
+* Clean up and and extend the nxmapps details command
+
+### Added
+
+* Implemented new payment and card wizard for StoreBuilder
+* Added a "Flush Cache" button to the admin bar
+* Support for Object Cache Pro
+
+
+## Version 1.31.0 - 2022-07-27
+
+### Added
+
+* Nexcess MU Plugins version number is displayed when running the `wp nxmapps support details` command
+
+### Fixed
+
+* Adjusted WooCommerce Cart Fragments settings toggle to be easier to understand when it is on or off
+
+### Updated
+
+* Add additional validation and messaging in the GoLive Wizard
+* Removed the jilt integration
+
+
+## Version 1.30.0 - 2022-06-23
+
+### Added
+
+* Add support for AutoLogin urls from the Nexcess Portal
+* Implement the new Shipping Wizard within StoreBuilder
+
+### Updated
+
+* StoreBuilder 3.1 Rollout - Updated GoLive Wizard
+
+### Fixed
+
+* Ensure Plugin Path is using full path for comparison
+* Fix initial state of WooCommerce Automated Settings checkbox
+* WooCommerce Automated Test Product hidden from Jetpack Publicize
+
+
+## Version 1.29.0 - 2022-05-25
+
+* No Changes, re-releasing to fix a versioning problem with the previous release.
+
+
+## Version 1.27.10 - 2022-05-23
+
+### Fixed
+
+* Fix issue with WooCommerce Automated Testing not returning a valid test product ID
+
+
+## Version 1.27.8 - 2022-05-20
+
+### Added
+
+* Add filters to hide WooCommerce Automated Testing test products from third-party sitemap plugins
+* Update files for internal migration checks
+* Add `noindex` and `nofollow` for WooCommerce Automated Testing test products
+
+## Updated
+
+* Update StoreBuilder First Time Configuration Location Dropdown
+* Update StoreBuilder First Time Configuration Button Text
+* Remove the site URL from API requests
+
+
+## Version 1.27.7 - 2022-05-01
+
+### Added
+
+* Suppress PHP 8.1 type errors
+* Add WP-CLI command to return available plugins in Nexcess Installer
+
+### Updated
+
+* Disable action scheduler on regression sites
+* Remove Go Live dashboard widget
+
+
+## Version 1.27.6 - 2022-04-28
+
+### Added
+
+* Added integration to notify users of Jilt platform shutdown
+
+
 ## Version 1.27.5 - 2022-03-30
 
 ### Added
@@ -20,6 +242,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 * Add Step 1 to Go Live Widget
+
 
 ## Version 1.27.4 - 2022-03-24
 
@@ -43,6 +266,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 * Update StoreBuilder Documentation
 * Show error for invalid image type when uploading logo
+
 
 ## Version 1.27.2 – 2022-03-15
 

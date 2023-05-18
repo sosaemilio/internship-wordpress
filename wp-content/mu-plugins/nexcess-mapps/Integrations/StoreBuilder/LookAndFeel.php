@@ -2,12 +2,15 @@
 
 namespace Nexcess\MAPPS\Integrations\StoreBuilder;
 
+use Nexcess\MAPPS\Concerns\HasHooks;
 use Nexcess\MAPPS\Concerns\ManagesGroupedOptions;
 
 class LookAndFeel {
+	use HasHooks;
 	use ManagesGroupedOptions;
 
-	const OPTION_NAME = '_storebuilder_look_and_feel';
+	const AJAX_STARTED_ACTION = 'storebuilder_look_and_feel_started';
+	const OPTION_NAME         = '_storebuilder_look_and_feel';
 
 	/**
 	 * @var StoreBuilderFTC
@@ -19,6 +22,34 @@ class LookAndFeel {
 	 */
 	public function __construct( StoreBuilderFTC $storebuilder_ftc ) {
 		$this->storebuilder_ftc = $storebuilder_ftc;
+
+		$this->addHooks();
+	}
+
+	/**
+	 * Sets the actions.
+	 */
+	protected function getActions() {
+		return [
+			[ 'wp_ajax_' . self::AJAX_STARTED_ACTION, [ $this, 'ajaxStarted' ] ],
+		];
+	}
+
+	/**
+	 * AJAX action to register telemetry that wizard started.
+	 */
+	public function ajaxStarted() {
+		if ( empty( $_REQUEST['_wpnonce'] ) ) {
+			return wp_send_json_error( 'Missing required parameters.', 400 );
+		}
+
+		if ( ! wp_verify_nonce( $_REQUEST['_wpnonce'], self::AJAX_STARTED_ACTION ) ) {
+			return wp_send_json_error( 'Nonce is invalid.', 403 );
+		}
+
+		do_action( 'wme_event_wizard_started', 'look_and_feel' );
+
+		return wp_send_json_success();
 	}
 
 	/**
@@ -51,10 +82,10 @@ class LookAndFeel {
 	/**
 	 * Sets the Look and Feel Template value.
 	 *
-	 * @param string $value
+	 * @param array $value
 	 */
 	public function setTemplate( $value ) {
-		$value = filter_var( $value, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
+		$value = filter_var_array( $value, FILTER_SANITIZE_FULL_SPECIAL_CHARS );
 		if ( $value ) {
 			$this->getOption()->template = $value;
 		}
@@ -91,10 +122,13 @@ class LookAndFeel {
 	 * @return bool
 	 */
 	public function save() {
-		if ( $this->getOption()->isDirty() ) {
-			return $this->getOption()->save();
+		if ( ! $this->getOption()->isDirty() ) {
+			return true;
 		}
-		return true;
+
+		do_action( 'wme_event_wizard_completed', 'look_and_feel' );
+
+		return $this->getOption()->save();
 	}
 
 	/**

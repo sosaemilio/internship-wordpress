@@ -2,10 +2,10 @@
 
 namespace Nexcess\MAPPS\Integrations\PerformanceMonitor\Factory;
 
-use Nexcess\MAPPS\Exceptions\ValidationException;
 use Nexcess\MAPPS\Integrations\PerformanceMonitor\CustomPostTypes;
 use Nexcess\MAPPS\Integrations\PerformanceMonitor\Meta;
 use Nexcess\MAPPS\Integrations\PerformanceMonitor\Model\BaseModel;
+use StellarWP\PluginFramework\Exceptions\ValidationException;
 
 /**
  * The `BaseFactory` implements and prescribes the basic methods
@@ -37,9 +37,9 @@ abstract class BaseFactory {
 	 * @param Array<mixed> $post_meta              Data to be stored as post meta.
 	 * @param Array<mixed> $additional_post_fields Additional post fields to be altered when post is created.
 	 *
-	 * @throws \Exception                                    When a new post can't be created or the supplied post meta is invalid.
-	 * @throws \Exception                                    When a new post can't be created or the supplied post meta is invalid.
-	 * @throws \Nexcess\MAPPS\Exceptions\ValidationException When the supplied post meta is invalid.
+	 * @throws \Exception                                                When a new post can't be created or the supplied post meta is invalid.
+	 * @throws \Exception                                                When a new post can't be created or the supplied post meta is invalid.
+	 * @throws \StellarWP\PluginFramework\Exceptions\ValidationException When the supplied post meta is invalid.
 	 *
 	 * @return int Post ID.
 	 */

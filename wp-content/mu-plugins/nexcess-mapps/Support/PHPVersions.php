@@ -2,7 +2,7 @@
 
 namespace Nexcess\MAPPS\Support;
 
-use Nexcess\MAPPS\Exceptions\InvalidPHPVersionException;
+use StellarWP\PluginFramework\Exceptions\InvalidPHPVersionException;
 
 class PHPVersions {
 
@@ -47,7 +47,7 @@ class PHPVersions {
 	 *
 	 * @param string $version The PHP version.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\InvalidPHPVersionException If the PHP version is undefined.
+	 * @throws \StellarWP\PluginFramework\Exceptions\InvalidPHPVersionException If the PHP version is undefined.
 	 *
 	 * @return \DateTimeImmutable An object representing the PHP version's EOL date.
 	 */

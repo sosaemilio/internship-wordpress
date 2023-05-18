@@ -23,12 +23,10 @@ trait QueriesMAPPS {
 			$endpoint = substr( $endpoint, 1 );
 		}
 
-		$response = wp_remote_request(
+		return wp_remote_request(
 			esc_url_raw( sprintf( '%s/api/%2$s', $this->settings->managed_apps_endpoint, $endpoint ) ),
 			array_replace_recursive( $this->getDefaultRequestArguments(), $args )
 		);
-
-		return $response;
 	}
 
 	/**
@@ -42,12 +40,36 @@ trait QueriesMAPPS {
 	 */
 	protected function getDefaultRequestArguments() {
 		return [
-			'user-agent' => sprintf( 'NexcessMAPPS/%1$s; %2$s', PLUGIN_VERSION, get_bloginfo( 'url' ) ),
+			'user-agent' => sprintf( 'NexcessMAPPS/%1$s', PLUGIN_VERSION ),
 			'timeout'    => 30,
 			'headers'    => [
 				'Accept'        => 'application/json',
 				'X-MAAPI-TOKEN' => $this->settings->managed_apps_token,
 			],
 		];
+	}
+
+	/**
+	 * Wrapper to set default request arguments and send a request to the MAPPS API.
+	 *
+	 * @param array $args Arguments to use.
+	 *
+	 * @return mixed[] An array of arguments.
+	 */
+	protected function getRequestArguments( $args = [] ) {
+		$default = $this->getDefaultRequestArguments();
+
+		// We're handling the nesting of headers specially, because we want to merge them,
+		// not replace them. If we didn't do this, then the default headers would be
+		// overwritten by the $args['headers'] argument.
+		$new_headers = isset( $args['headers'] ) ? $args['headers'] : '';
+
+		if ( $new_headers ) {
+			$default_headers = isset( $default['headers'] ) ? $default['headers'] : [];
+
+			$args['headers'] = wp_parse_args( $new_headers, $default_headers );
+		}
+
+		return wp_parse_args( $args, $default );
 	}
 }

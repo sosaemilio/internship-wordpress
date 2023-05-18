@@ -2,7 +2,7 @@
 
 namespace Nexcess\MAPPS\Concerns;
 
-use Nexcess\MAPPS\Exceptions\WPErrorException;
+use StellarWP\PluginFramework\Exceptions\WPErrorException;
 use WP_Error;
 
 trait MakesHttpRequests {
@@ -16,7 +16,7 @@ trait MakesHttpRequests {
 	 * @param mixed[]|WP_Error $response The return value from wp_remote_request().
 	 * @param int              $code     Optional. The expected/required response code. Default is 200.
 	 *
-	 * @throws \Nexcess\MAPPS\Exceptions\WPErrorException If a WP_Error object is encountered.
+	 * @throws \StellarWP\PluginFramework\Exceptions\WPErrorException If a WP_Error object is encountered.
 	 *
 	 * @return string The response body, as long as all of the checks pass.
 	 */
