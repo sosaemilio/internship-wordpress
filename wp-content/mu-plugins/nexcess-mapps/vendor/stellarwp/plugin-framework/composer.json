@@ -1,0 +1,116 @@
+{
+    "name": "stellarwp/plugin-framework",
+    "description": "A framework for creating complex WordPress plugins",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "StellarWP",
+            "homepage": "https://stellarwp.com"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/stellarwp/plugin-framework/issues",
+        "source": "https://github.com/stellarwp/plugin-framework"
+    },
+    "repositories": [
+        {
+            "type":"composer",
+            "url":"https://wpackagist.org",
+            "only": [
+                "wpackagist-plugin/*",
+                "wpackagist-theme/*"
+            ]
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "StellarWP\\PluginFramework\\": "src/"
+        },
+        "files": [
+            "src/Support/Compat.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true,
+    "require": {
+        "php": "^5.6 | ^7.0 | ^8.0",
+        "psr/log": "^1.1",
+        "stellarwp/admin-notice": "^0.1",
+        "stellarwp/container": "^0.1",
+        "stevegrunwell/wp-cache-remember": "^1.1",
+        "wp-cli/wp-config-transformer": "^1.3"
+    },
+    "require-dev": {
+        "assertwell/phpunit-global-state": "^0.2",
+        "assertwell/shellcheck": "^1.0",
+        "assertwell/wp-core-test-framework": "^0.2",
+        "mockery/mockery": "^1.3",
+        "php-stubs/wordpress-tests-stubs": "^6.1",
+        "stellarwp/coding-standards": "^1.0",
+        "stevegrunwell/phpunit-markup-assertions": "^1.3",
+        "stevegrunwell/runkit7-installer": "^1.2",
+        "szepeviktor/phpstan-wordpress": "^1.0",
+        "wp-cli/wp-cli": "^2.6",
+        "wpackagist-plugin/cache-enabler": "^1.8",
+        "wpackagist-plugin/hello-dolly": "*",
+        "yoast/phpunit-polyfills": "^1.0"
+    },
+    "bin": [
+        "bin/check-version.sh"
+    ],
+    "scripts": {
+        "fix:standards": [
+            "phpcbf",
+            "php-cs-fixer fix -v --diff"
+        ],
+        "test": [
+            "@test:all"
+        ],
+        "test:all": [
+            "@test:unit",
+            "@test:standards",
+            "@test:analysis"
+        ],
+        "test:analysis": [
+            "phpstan analyse -c phpstan.neon.dist --memory-limit=768M"
+        ],
+        "test:coverage": [
+            "phpdbg -qrr -d memory_limit=-1 ./vendor/bin/phpunit --coverage-html=tests/coverage --coverage-text --colors=always"
+        ],
+        "test:shellcheck": [
+            "shellcheck bin/*"
+        ],
+        "test:standards": [
+            "phpcs --cache",
+            "php-cs-fixer fix --config=vendor/stellarwp/coding-standards/src/php-cs-fixer.php -v --diff --dry-run"
+        ],
+        "test:unit": [
+            "phpunit --testdox --colors=always"
+        ]
+    },
+    "scripts-descriptions": {
+        "test:all": "Run all automated tests.",
+        "test:analysis": "Perform static code analysis.",
+        "test:coverage": "Generate code coverage reports.",
+        "test:shellcheck": "Lint shell scripts via ShellCheck.",
+        "test:standards": "Check coding standards.",
+        "test:unit": "Run all of the PHPUnit test suites."
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "composer/installers": true,
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "extra": {
+        "installer-disable": true
+    }
+}

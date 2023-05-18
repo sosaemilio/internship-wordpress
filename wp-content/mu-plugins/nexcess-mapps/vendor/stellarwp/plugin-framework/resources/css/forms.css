@@ -1,0 +1,42 @@
+/**
+ * General form utilities.
+ */
+
+/*
+ * Inline forms, useful for a single input followed by a button.
+ *
+ *     <form class="stellarwp-inline-form">
+ *         <fieldset>
+ *             <label for="my-input" class="screen-reader-text">Label</label>
+ *             <input name="my-input" id="my-input" />
+ *         </fieldset>
+ *         <button type="submit" class="button button-primary">Submit</button>
+ *     </form>
+ */
+.stellarwp-inline-form {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1em;
+}
+
+.stellarwp-inline-form > fieldset {
+    flex: 1;
+    margin-right: 1em;
+}
+
+.stellarwp-inline-form input {
+    width: 100%;
+}
+
+/* Additional parts of a form, perhaps hidden by default? */
+.stellarwp-form-extension {
+    margin: 1em 0;
+}
+
+/* Add a bit of spacing between checkboxes and descriptions. */
+.stellarwp-inline-checkbox + .description {
+    margin-top: .5em;
+}
